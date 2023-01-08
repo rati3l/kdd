@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"fmt"
 	"net/http"
 	"sort"
 
@@ -49,6 +50,25 @@ func (a *API) GetNamespaces(c *gin.Context) {
 	sort.Sort(models.ByNamespaceName(namespaces))
 
 	a.Response(c, http.StatusOK, SUCCESS, namespaces)
+}
+
+func (a *API) GetNamespace(c *gin.Context) {
+	name := c.Query("name")
+	if name == "" {
+		a.Response(c, http.StatusBadRequest, BAD_REQUEST, nil)
+		return
+	}
+
+	namespace, err := a.ds.GetNamespace(name)
+	if err != nil && err.Error() == fmt.Sprintf("namespace %s could not be found", name) {
+		a.Response(c, http.StatusNotFound, NOT_FOUND, "namespace %s could not be found")
+		return
+	} else if err != nil {
+		a.Response(c, http.StatusInternalServerError, ERROR, "an internal server error occurred")
+		return
+	}
+
+	a.Response(c, http.StatusOK, SUCCESS, namespace)
 }
 
 func (a *API) GetWorkloads(c *gin.Context) {
