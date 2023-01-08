@@ -136,7 +136,7 @@ function PageContainer(props: Props) {
                         </ListItemButton>
                     </ListItem>
                     <ListItem disablePadding>
-                        <ListItemButton component="a" href="/ui/namespaces" >
+                        <ListItemButton href="/ui/namespaces" >
                             <ListItemText primary="Namespaces" />
                         </ListItemButton>
                     </ListItem>

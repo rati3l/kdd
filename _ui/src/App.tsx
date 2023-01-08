@@ -6,6 +6,7 @@ import {
   Route,
 } from 'react-router-dom';
 import Namespaces from "./pages/Namespaces";
+import Namespace from "./pages/Namespace";
 
 const LOCAL_STORAGE_REFRESH_INTERVAL_KEY = "refreshIntervalMS"
 
@@ -35,6 +36,7 @@ function App() {
         <PageContainer refreshIntervalMS={refreshIntervalMS} onRefreshIntervalChanged={refreshIntervalMSChanged}>
           <Routes>
             <Route path="/ui/namespaces" element={<Namespaces  refreshIntervalMS={refreshIntervalMS} />}></Route>
+            <Route path="/ui/namespace/:name" element={<Namespace  refreshIntervalMS={refreshIntervalMS} />}></Route>
           </Routes>
         </PageContainer>
       </Router>
