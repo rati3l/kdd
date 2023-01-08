@@ -168,6 +168,53 @@ func (d *DataStore) GetAllNamespaces() (*models.Collection, error) {
 
 }
 
+func (d *DataStore) GetNamespace(name string) (*models.Namespace, error) {
+	sqlStmt := "SELECT key, name, labels, annotations, creation_timestamp FROM namespaces WHERE name=? LIMIT 1"
+	stmt, err := d.db.Prepare(sqlStmt)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := stmt.Query(name)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	if rows.Next() {
+		var key string
+		var name string
+		var creationTimestamp int64
+		var rawLabels []byte
+		var rawAnnotations []byte
+		labels := make(map[string]string)
+		annotations := make(map[string]string)
+
+		if err := rows.Scan(&key, &name, &rawLabels, &rawAnnotations, &creationTimestamp); err != nil {
+			zap.L().Error("Could not scan result from sqllite database", zap.Error(err))
+			return nil, err
+		}
+		if err := json.Unmarshal(rawLabels, &labels); err != nil {
+			zap.L().Error("could not unmarshal labels", zap.Error(err))
+			return nil, err
+		}
+
+		if err := json.Unmarshal(rawAnnotations, &annotations); err != nil {
+			zap.L().Error("could not unmarshal annotations", zap.Error(err))
+			return nil, err
+		}
+		return &models.Namespace{
+			Name:              name,
+			Labels:            labels,
+			Annotations:       annotations,
+			CreationTimestamp: time.Unix(creationTimestamp, 0),
+		}, nil
+	}
+
+	return nil, fmt.Errorf(fmt.Sprintf("namespace %s could not be found", name))
+
+}
+
 func (d *DataStore) ReplaceWorkloads(collection *models.Collection) error {
 	cntFields := 10
 	sqlStmtHead := "REPLACE INTO workloads (key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, creation_timestamp) VALUES "

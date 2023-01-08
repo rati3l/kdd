@@ -440,3 +440,57 @@ func TestUpdateMetrics(t *testing.T) {
 	assert.Equal(t, collection1.Len(), resultCollection.Len())
 	assert.True(t, models.CompareCollections(collection1, resultCollection, CompareContainerMetrics), "The collections need to be equal")
 }
+
+func TestGetNamespace(t *testing.T) {
+
+	ds, teardownFunc := setupPersistenceTestSuite(t)
+	defer teardownFunc(t)
+
+	labels := make(map[string]string)
+	labels["managed_by"] = "kdd"
+	labels["app"] = "kdd"
+
+	annotations := make(map[string]string)
+	annotations["log_format"] = "json"
+	annotations["splunk.com/exclude"] = "true"
+
+	defaultNS := models.Namespace{
+		Name:              "default",
+		Labels:            labels,
+		Annotations:       annotations,
+		CreationTimestamp: time.Now(),
+	}
+
+	kubeSystemNS := models.Namespace{
+		Name:              "kube-system",
+		Labels:            labels,
+		Annotations:       annotations,
+		CreationTimestamp: time.Now(),
+	}
+
+	monitoringNS := models.Namespace{
+		Name:              "monitoring",
+		Labels:            labels,
+		Annotations:       annotations,
+		CreationTimestamp: time.Now(),
+	}
+
+	collection1 := models.NewCollection()
+	collection1.Set("default", defaultNS, true)
+	collection1.Set("kube-system", kubeSystemNS, true)
+	collection1.Set("monitoringNS", monitoringNS, true)
+
+	assert.NoError(t, ds.ReplaceNamespaces(collection1))
+	resultCollection, err := ds.GetAllNamespaces()
+	assert.NoError(t, err)
+	assert.Equal(t, collection1.Len(), resultCollection.Len())
+
+	ns, err := ds.GetNamespace("monitoring")
+	assert.NoError(t, err)
+	assert.Equal(t, "monitoring", ns.Name)
+
+	ns, err = ds.GetNamespace("not-existing")
+	assert.Nil(t, ns)
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), "namespace not-existing could not be found")
+}

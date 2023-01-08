@@ -50,7 +50,7 @@ const columns: GridColDef[] = [
         headerName: 'name', 
         width: 300,
         renderCell: (params: GridRenderCellParams<any>) => {
-            return <Link href={`/namespace/${params?.value}`}>{params?.value}</Link>
+            return <Link href={`/ui/namespace/${params?.value}`}>{params?.value}</Link>
         }
     },
     {
