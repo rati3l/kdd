@@ -31,11 +31,15 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
 
 const renderChips = (color: any) => {
     return (params: GridRenderCellParams<any>) => {
-        return <Stack direction="row" sx={{ width: 280, flexWrap: "wrap" }}>{Object.keys(params.value).map((key) => {
-            return <Chip title={key + "=" + params?.value[key]} label={key + "=" + params?.value[key]} sx={{ marginRight: "5px", marginBottom: "5px" }} size="small" variant="outlined" color={color} />
+        return <Stack direction="row" sx={{ width: 380, flexWrap: "wrap" }}>{Object.keys(params.value).map((key) => {
+            return <Chip title={key + "=" + params?.value[key]} label={key + "=" + params?.value[key]} sx={{ marginRight: "5px", marginBottom: "5px" }} size="small" variant="filled" color={color} />
         })}
         </Stack>
     }
+}
+
+const renderNamespaceStatus = (params: GridRenderCellParams<any>) => {
+    return <Chip sx={{marginBottom: "5px"}} label={params?.value} variant="outlined" color="success" size="small" />
 }
 
 const renderAge = () => {
@@ -53,10 +57,16 @@ const columns: GridColDef[] = [
             return <Link href={`/ui/namespace/${params?.value}`}>{params?.value}</Link>
         }
     },
+    { 
+        field: 'status', 
+        headerName: 'status', 
+        width: 200,
+        renderCell: renderNamespaceStatus,
+    },
     {
         field: 'labels',
         headerName: 'labels',
-        width: 350,
+        width: 400,
         disableColumnMenu: true,
         filterable: false,
         sortable: false,
@@ -68,7 +78,7 @@ const columns: GridColDef[] = [
         disableColumnMenu: true,
         filterable: false,
         sortable: false,
-        width: 350,
+        width: 400,
         renderCell: renderChips("secondary"),
     },
     {
@@ -121,12 +131,12 @@ function Namespaces(props: Props) {
 
         const fetchFunc = () => {
             Promise.all([getNamespaces(), getWorkloads()]).then(([namespaces, workloads]) => {
-                const data = namespaces.map((ns: any) => {
+                setData(namespaces.map((ns: any) => {
                     let statefulsets = 0
                     let daemonsets = 0
                     let deployments = 0
 
-                    const data = workloads.filter((w: any) => w.workload_info.namespace == ns.name).forEach((w: any) => {
+                    workloads.filter((w: any) => w.workload_info.namespace === ns.name).forEach((w: any) => {
                         switch (w.type) {
                             case "Daemonset":
                                 daemonsets++
@@ -143,9 +153,7 @@ function Namespaces(props: Props) {
                     })
 
                     return { ...ns, workloads: { statefulsets, deployments, daemonsets } }
-                })
-
-                setData(data)
+                }))
             }).catch(error => {
                 if (axios.isAxiosError(error)) {
                     console.error("failed to retrieve namespace information", error.message)
@@ -161,19 +169,15 @@ function Namespaces(props: Props) {
         fetchFunc()
         // check if already a interval is configured
         if (interval) {
-            console.log("inteval already setup, therefore we need to clear interval before we can change it.")
             clearInterval(interval)
         }
         // configure new interval
-        console.log("configure interval")
         interval = setInterval(fetchFunc, props.refreshIntervalMS)
         return () => {
-            console.log("clear interval")
             clearInterval(interval)
         }
 
     }, [props.refreshIntervalMS]);
-
 
 
     return <React.Fragment>
@@ -181,7 +185,7 @@ function Namespaces(props: Props) {
         <Box>
             {loading ? <CircularProgress color="primary" /> : <StyledDataGrid getRowId={(row: any) => { return row.name }} rows={data} columns={columns} sx={{ height: "800px" }} />}
         </Box>
-        <Snackbar anchorOrigin={{ horizontal: "left", vertical: "bottom" }} open={errorMessage != ""} autoHideDuration={6000}>
+        <Snackbar anchorOrigin={{ horizontal: "left", vertical: "bottom" }} open={errorMessage !== ""} autoHideDuration={6000}>
             <Alert severity="error">{errorMessage}</Alert>
         </Snackbar>
     </React.Fragment>

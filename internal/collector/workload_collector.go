@@ -101,6 +101,7 @@ func (w *WorkloadCollector) collectNamspaces(collection *models.Collection) erro
 	for _, item := range nsList.Items {
 		collection.Set(item.Name, models.Namespace{
 			CreationTimestamp: item.CreationTimestamp.Time,
+			Status:            string(item.Status.Phase),
 			Name:              item.Name,
 			Labels:            item.Labels,
 			Annotations:       item.Annotations,

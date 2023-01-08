@@ -26,6 +26,7 @@ type DataStore struct {
 const sqlite3_schema string = `
 CREATE TABLE IF NOT EXISTS namespaces (
 	key TEXT NOT NULL PRIMARY KEY,
+	status TEXT,
 	name TEXT NOT NULL, 
 	labels TEXT NOT NULL, 
 	annotations TEXT NOT NULL,
@@ -84,9 +85,9 @@ func NewSQLiteDataStore(filename string) (*DataStore, error) {
 }
 
 func (d *DataStore) ReplaceNamespaces(collection *models.Collection) error {
-	cntFields := 5
-	sqlStmtHead := "REPLACE INTO namespaces (key, name, labels, annotations, creation_timestamp) VALUES "
-	sqlStmtVals := "(?, ?, ?, ?, ?)"
+	cntFields := 6
+	sqlStmtHead := "REPLACE INTO namespaces (key, name, status, labels, annotations, creation_timestamp) VALUES "
+	sqlStmtVals := "(?, ?, ?, ?, ?, ?)"
 	rows := collection.Len()
 	values := make([]any, rows*cntFields)
 	i := 0
@@ -104,10 +105,10 @@ func (d *DataStore) ReplaceNamespaces(collection *models.Collection) error {
 
 		values[i] = key
 		values[i+1] = namespace.Name
-		values[i+2] = string(labels)
-		values[i+3] = string(annotations)
-		values[i+4] = strconv.FormatInt(creationTimestamp, 10)
-		// increase step by 5
+		values[i+2] = namespace.Status
+		values[i+3] = string(labels)
+		values[i+4] = string(annotations)
+		values[i+5] = strconv.FormatInt(creationTimestamp, 10)
 		i += cntFields
 	}
 
@@ -120,7 +121,7 @@ func (d *DataStore) ReplaceNamespaces(collection *models.Collection) error {
 
 func (d *DataStore) GetAllNamespaces() (*models.Collection, error) {
 	collection := models.NewCollection()
-	sqlStmt := "SELECT key, name, labels, annotations, creation_timestamp FROM namespaces"
+	sqlStmt := "SELECT key, name, status, labels, annotations, creation_timestamp FROM namespaces"
 	stmt, err := d.db.Prepare(sqlStmt)
 	if err != nil {
 		return nil, err
@@ -135,13 +136,14 @@ func (d *DataStore) GetAllNamespaces() (*models.Collection, error) {
 	for rows.Next() {
 		var key string
 		var name string
+		var status string
 		var creationTimestamp int64
 		var rawLabels []byte
 		var rawAnnotations []byte
 		labels := make(map[string]string)
 		annotations := make(map[string]string)
 
-		if err := rows.Scan(&key, &name, &rawLabels, &rawAnnotations, &creationTimestamp); err != nil {
+		if err := rows.Scan(&key, &name, &status, &rawLabels, &rawAnnotations, &creationTimestamp); err != nil {
 			zap.L().Error("Could not scan result from sqllite database", zap.Error(err))
 			return nil, err
 		}
@@ -156,6 +158,7 @@ func (d *DataStore) GetAllNamespaces() (*models.Collection, error) {
 		}
 		ns := models.Namespace{
 			Name:              name,
+			Status:            status,
 			Labels:            labels,
 			Annotations:       annotations,
 			CreationTimestamp: time.Unix(creationTimestamp, 0),
@@ -169,7 +172,7 @@ func (d *DataStore) GetAllNamespaces() (*models.Collection, error) {
 }
 
 func (d *DataStore) GetNamespace(name string) (*models.Namespace, error) {
-	sqlStmt := "SELECT key, name, labels, annotations, creation_timestamp FROM namespaces WHERE name=? LIMIT 1"
+	sqlStmt := "SELECT key, name, status, labels, annotations, creation_timestamp FROM namespaces WHERE name=? LIMIT 1"
 	stmt, err := d.db.Prepare(sqlStmt)
 	if err != nil {
 		return nil, err
@@ -184,13 +187,14 @@ func (d *DataStore) GetNamespace(name string) (*models.Namespace, error) {
 	if rows.Next() {
 		var key string
 		var name string
+		var status string
 		var creationTimestamp int64
 		var rawLabels []byte
 		var rawAnnotations []byte
 		labels := make(map[string]string)
 		annotations := make(map[string]string)
 
-		if err := rows.Scan(&key, &name, &rawLabels, &rawAnnotations, &creationTimestamp); err != nil {
+		if err := rows.Scan(&key, &name, &status, &rawLabels, &rawAnnotations, &creationTimestamp); err != nil {
 			zap.L().Error("Could not scan result from sqllite database", zap.Error(err))
 			return nil, err
 		}
@@ -205,6 +209,7 @@ func (d *DataStore) GetNamespace(name string) (*models.Namespace, error) {
 		}
 		return &models.Namespace{
 			Name:              name,
+			Status:            status,
 			Labels:            labels,
 			Annotations:       annotations,
 			CreationTimestamp: time.Unix(creationTimestamp, 0),
