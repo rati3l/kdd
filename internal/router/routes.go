@@ -27,6 +27,7 @@ func InitRouter(ds *persistence.DataStore) *gin.Engine {
 	{
 		api := v1.NewAPI(ds)
 		apiv1.GET("/namespaces", api.GetNamespaces)
+		apiv1.GET("/namespaces/:name", api.GetNamespace)
 		apiv1.GET("/workloads", api.GetWorkloads)
 		apiv1.GET("/container-metrics", api.GetContainerMetrics)
 	}

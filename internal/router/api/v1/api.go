@@ -53,7 +53,7 @@ func (a *API) GetNamespaces(c *gin.Context) {
 }
 
 func (a *API) GetNamespace(c *gin.Context) {
-	name := c.Query("name")
+	name := c.Param("name")
 	if name == "" {
 		a.Response(c, http.StatusBadRequest, BAD_REQUEST, nil)
 		return
@@ -68,7 +68,28 @@ func (a *API) GetNamespace(c *gin.Context) {
 		return
 	}
 
-	a.Response(c, http.StatusOK, SUCCESS, namespace)
+	collection, err := a.ds.GetWorkloadsByNamespace(name)
+	if err != nil {
+		a.Response(c, http.StatusInternalServerError, ERROR, "an internal server error occurred")
+		return
+	}
+
+	// sorting result
+	result := collection.ToList()
+	workloads := make([]models.Workload, len(result))
+	for i := 0; i < len(result); i++ {
+		workloads[i] = result[i].(models.Workload)
+	}
+
+	sort.Sort(models.ByWorkloadName(workloads))
+
+	a.Response(c, http.StatusOK, SUCCESS, struct {
+		Namespace models.Namespace  `json:"namespace"`
+		Workloads []models.Workload `json:"workloads"`
+	}{
+		Namespace: *namespace,
+		Workloads: workloads,
+	})
 }
 
 func (a *API) GetWorkloads(c *gin.Context) {
