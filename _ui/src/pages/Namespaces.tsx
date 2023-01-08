@@ -3,7 +3,7 @@ import PageHead from "../components/PageHead"
 import { DataGrid, GridColDef, GridRenderCellParams, GridRowsProp } from '@mui/x-data-grid';
 import axios from "axios";
 import { Box } from "@mui/system";
-import { Alert, Chip, CircularProgress, Snackbar, Stack } from "@mui/material";
+import { Alert, Chip, CircularProgress, Link, Snackbar, Stack } from "@mui/material";
 import { styled } from '@mui/material/styles';
 import moment from "moment";
 
@@ -45,7 +45,14 @@ const renderAge = () => {
 }
 
 const columns: GridColDef[] = [
-    { field: 'name', headerName: 'name', width: 300 },
+    { 
+        field: 'name', 
+        headerName: 'name', 
+        width: 300,
+        renderCell: (params: GridRenderCellParams<any>) => {
+            return <Link href={`/namespace/${params?.value}`}>{params?.value}</Link>
+        }
+    },
     {
         field: 'labels',
         headerName: 'labels',
