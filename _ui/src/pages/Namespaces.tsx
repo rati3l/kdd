@@ -7,6 +7,10 @@ import { Alert, Chip, CircularProgress, Snackbar, Stack } from "@mui/material";
 import { styled } from '@mui/material/styles';
 import moment from "moment";
 
+type Props = {
+    refreshIntervalMS: number;
+}
+
 
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     "& .MuiDataGrid-renderingZone": {
@@ -89,10 +93,12 @@ const columns: GridColDef[] = [
     */
 ];
 
-function Namespaces(props: any) {
+function Namespaces(props: Props) {
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrrorMessage] = useState("")
     const [data, setData] = useState([])
+
+    let interval: any = null
 
     useEffect(() => {
 
@@ -106,53 +112,69 @@ function Namespaces(props: any) {
         }
         setLoading(true)
 
-        Promise.all([getNamespaces(), getWorkloads()]).then(([namespaces, workloads]) => {
+        const fetchFunc = () => {
+            Promise.all([getNamespaces(), getWorkloads()]).then(([namespaces, workloads]) => {
+                const data = namespaces.map((ns: any) => {
+                    let statefulsets = 0
+                    let daemonsets = 0
+                    let deployments = 0
 
-            const data = namespaces.map((ns: any) => {
-                let statefulsets = 0
-                let daemonsets = 0
-                let deployments = 0
+                    const data = workloads.filter((w: any) => w.workload_info.namespace == ns.name).forEach((w: any) => {
+                        switch (w.type) {
+                            case "Daemonset":
+                                daemonsets++
+                                break;
+                            case "Deployment":
+                                deployments++
+                                break;
+                            case "Statefulset":
+                                statefulsets++
+                                break
+                            default:
+                                console.error("unkown workload type found", w.workload_info.type)
+                        }
+                    })
 
-                const data = workloads.filter((w: any) => w.workload_info.namespace == ns.name).forEach((w: any) => {
-                    switch (w.type) {
-                        case "Daemonset":
-                            daemonsets++
-                            break;
-                        case "Deployment":
-                            deployments++
-                            break;
-                        case "Statefulset":
-                            statefulsets++
-                            break
-                        default:
-                            console.error("unkown workload type found", w.workload_info.type)
-                    }
+                    return { ...ns, workloads: { statefulsets, deployments, daemonsets } }
                 })
 
-                return { ...ns, workloads: { statefulsets, deployments, daemonsets } }
-            })
+                setData(data)
+            }).catch(error => {
+                if (axios.isAxiosError(error)) {
+                    console.error("failed to retrieve namespace information", error.message)
+                    setErrrorMessage("failed to retrieve namespace information")
+                } else {
+                    console.error("a unknown error occurred", error)
+                    setErrrorMessage("a unknown error occurred")
+                }
+            }).finally(() => { setLoading(false) })            
+        }
 
-            setData(data)
+        // fetching data initially
+        fetchFunc()
+        // check if already a interval is configured
+        if (interval) {
+            console.log("inteval already setup, therefore we need to clear interval before we can change it.")
+            clearInterval(interval)
+        }
+        // configure new interval
+        console.log("configure interval")
+        interval = setInterval(fetchFunc, props.refreshIntervalMS)
+        return () => {
+            console.log("clear interval")
+            clearInterval(interval)
+        }
 
-        }).catch(error => {
-            if (axios.isAxiosError(error)) {
-                console.error("failed to retrieve namespace information", error.message)
-                setErrrorMessage("failed to retrieve namespace information")
-            } else {
-                console.error("a unknown error occurred", error)
-                setErrrorMessage("a unknown error occurred")
-            }
-        }).finally(() => { setLoading(false) })
-    }, []);
+    }, [props.refreshIntervalMS]);
 
 
 
     return <React.Fragment>
         <PageHead title={"Namespaces"} />
         <Box>
-            {loading?<CircularProgress color="primary" />:<StyledDataGrid getRowId={(row: any) => { return row.name }} rows={data} columns={columns} sx={{ height: "800px" }} />}
+            {loading ? <CircularProgress color="primary" /> : <StyledDataGrid getRowId={(row: any) => { return row.name }} rows={data} columns={columns} sx={{ height: "800px" }} />}
         </Box>
-        <Snackbar anchorOrigin={{horizontal: "left", vertical:"bottom"}} open={errorMessage != ""} autoHideDuration={6000}>
+        <Snackbar anchorOrigin={{ horizontal: "left", vertical: "bottom" }} open={errorMessage != ""} autoHideDuration={6000}>
             <Alert severity="error">{errorMessage}</Alert>
         </Snackbar>
     </React.Fragment>

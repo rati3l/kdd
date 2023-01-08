@@ -1,14 +1,19 @@
-import { CssBaseline, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemText, Toolbar, Typography } from '@mui/material';
+import React from "react"
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
-import { styled, useTheme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import React from "react"
+import { CssBaseline, Divider, Drawer, FormControl, IconButton, InputLabel, List, ListItem, ListItemButton, ListItemText, MenuItem, Select, SelectChangeEvent, Toolbar, Typography } from '@mui/material';
+import { styled, useTheme } from '@mui/material/styles';
 import { Box } from '@mui/system';
-import { Link } from 'react-router-dom';
 
 const drawerWidth = 240;
+
+type Props = {
+    refreshIntervalMS: number;
+    onRefreshIntervalChanged: any;
+    children: any;
+};
 
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
     open?: boolean;
@@ -59,7 +64,7 @@ const AppBar = styled(MuiAppBar, {
     }),
 }));
 
-function PageContainer(props: any) {
+function PageContainer(props: Props) {
     const theme = useTheme();
     const [open, setOpen] = React.useState(false);
 
@@ -70,6 +75,13 @@ function PageContainer(props: any) {
     const handleDrawerClose = () => {
         setOpen(false);
     };
+
+    const onChange = (e: SelectChangeEvent) => {
+        e.preventDefault();
+        if (props.onRefreshIntervalChanged) {
+            props.onRefreshIntervalChanged(parseInt(e.target.value, 10))
+        }
+    }
 
     return (
         <Box sx={{ display: 'flex' }}>
@@ -84,9 +96,20 @@ function PageContainer(props: any) {
                         sx={{ mr: 2, ...(open && { display: 'none' }) }}>
                         <MenuIcon />
                     </IconButton>
-                    <Typography variant="h6" color="inherit" component="div">
+                    <Typography variant="h6" color="inherit" component="div" sx={{ "flexGrow": "1" }}>
                         kdd
                     </Typography>
+                    <Box>
+                        <FormControl sx={{ m: 1, minWidth: 120, color: "#fff !important" }}>
+                            <InputLabel sx={{ color: "#fff !important" }} id="refresh-interval-label">Refresh Interval</InputLabel>
+                            <Select sx={{ color: "#fff !important" }} labelId="refresh-interval-label" id="refresh-interval" value={props.refreshIntervalMS.toString()} label="Refresh Interval" onChange={onChange}>
+                                <MenuItem value={5000}>5 sec.</MenuItem>
+                                <MenuItem value={10000}>10 sec.</MenuItem>
+                                <MenuItem value={60000}>1 min.</MenuItem>
+                                <MenuItem value={60000 * 5}>5 min.</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Box>
                 </Toolbar>
             </AppBar>
             <Drawer sx={{

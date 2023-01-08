@@ -61,7 +61,7 @@ func (c *Controller) Run(done <-chan struct{}) {
 				return
 			case <-ticker.C:
 				zap.L().Debug("start collecting data")
-				_, err := c.wlc.Collect()
+				res, err := c.wlc.Collect()
 				c.ds.ReplaceNamespaces(res.GetNamespaceCollection())
 				c.ds.ReplaceWorkloads(res.GetWorkloadCollection())
 				c.ds.UpdateMetrics(res.GetContainerMetricsCollection())
