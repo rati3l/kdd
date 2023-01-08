@@ -267,7 +267,6 @@ func (d *DataStore) ReplaceWorkloads(collection *models.Collection) error {
 }
 
 func (d *DataStore) GetAllWorkloads() (*models.Collection, error) {
-	collection := models.NewCollection()
 	sqlStmt := "SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, creation_timestamp FROM workloads"
 	stmt, err := d.db.Prepare(sqlStmt)
 	if err != nil {
@@ -280,6 +279,11 @@ func (d *DataStore) GetAllWorkloads() (*models.Collection, error) {
 	}
 
 	defer rows.Close()
+	return d.createWorkloadCollection(rows)
+}
+
+func (*DataStore) createWorkloadCollection(rows *sql.Rows) (*models.Collection, error) {
+	collection := models.NewCollection()
 	for rows.Next() {
 		var key string
 		var workloadName string
@@ -378,6 +382,22 @@ func (d *DataStore) GetAllWorkloads() (*models.Collection, error) {
 	}
 
 	return collection, nil
+}
+
+func (d *DataStore) GetWorkloadsByNamespace(namespace string) (*models.Collection, error) {
+	sqlStmt := "SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, creation_timestamp FROM workloads WHERE namespace=?"
+	stmt, err := d.db.Prepare(sqlStmt)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := stmt.Query(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	return d.createWorkloadCollection(rows)
 }
 
 func (d *DataStore) replace(sqlStmtHead string, sqlStmtVals string, rows int, values []any) error {

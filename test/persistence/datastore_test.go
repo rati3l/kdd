@@ -494,3 +494,166 @@ func TestGetNamespace(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "namespace not-existing could not be found")
 }
+
+func TestGetWorkloadByNamespace(t *testing.T) {
+	ds, teardownFunc := setupPersistenceTestSuite(t)
+	defer teardownFunc(t)
+
+	labels := make(map[string]string)
+	labels["managed_by"] = "kdd"
+	labels["app"] = "kdd"
+
+	annotations := make(map[string]string)
+	annotations["log_format"] = "json"
+	annotations["splunk.com/exclude"] = "true"
+
+	selector := make(map[string]string)
+	selector["app"] = "daemonset"
+
+	wordpressDeployment := models.DeploymentWorkload{
+		GeneralWorkloadInfo: models.GeneralWorkloadInfo{
+			WorkloadName: "wordpress",
+			Namespace:    "website",
+			Labels:       labels,
+			Annotations:  annotations,
+			Selector:     selector,
+			Containers: []models.Container{
+				{
+					ContainerName: "wordpress",
+					Image:         "wordpress",
+					ImageVersion:  "1.5.2",
+					RequestCPU:    100,
+					RequestMemory: 100,
+					LimitCPU:      200,
+					LimitMemory:   200,
+					InitContainer: false,
+				},
+				{
+					ContainerName: "init-bash",
+					Image:         "bash",
+					ImageVersion:  "1.9.2",
+					RequestCPU:    100,
+					RequestMemory: 100,
+					LimitCPU:      200,
+					LimitMemory:   200,
+					InitContainer: true,
+				},
+			},
+		},
+		Status: models.DeploymentStatus{
+			Desired:   1,
+			Ready:     1,
+			Available: 1,
+			Up2date:   1,
+		},
+	}
+
+	filebeatDaemonSet := models.DaemonSetWorkload{
+		GeneralWorkloadInfo: models.GeneralWorkloadInfo{
+			WorkloadName: "filebeat",
+			Namespace:    "logging",
+			Labels:       labels,
+			Annotations:  annotations,
+			Selector:     selector,
+			Containers: []models.Container{
+				{
+					ContainerName: "filebeat",
+					Image:         "filebeat",
+					ImageVersion:  "1.5.2",
+					RequestCPU:    100,
+					RequestMemory: 100,
+					LimitCPU:      200,
+					LimitMemory:   200,
+					InitContainer: false,
+				},
+				{
+					ContainerName: "filebeat-init",
+					Image:         "filebeat-init",
+					ImageVersion:  "1.9.2",
+					RequestCPU:    100,
+					RequestMemory: 100,
+					LimitCPU:      200,
+					LimitMemory:   200,
+					InitContainer: true,
+				},
+			},
+		},
+		Status: models.DaemonSetStatus{
+			Desired:   3,
+			Current:   2,
+			Ready:     1,
+			Up2date:   2,
+			Available: 2,
+		},
+	}
+
+	bashPod := models.PodWorkload{
+		GeneralWorkloadInfo: models.GeneralWorkloadInfo{
+			WorkloadName: "bash",
+			Namespace:    "debugging",
+			Labels:       labels,
+			Annotations:  annotations,
+			Selector:     selector,
+			Containers: []models.Container{
+				{
+					ContainerName: "bash",
+					Image:         "bash",
+					ImageVersion:  "1.5.2",
+					RequestCPU:    100,
+					RequestMemory: 100,
+					LimitCPU:      200,
+					LimitMemory:   200,
+					InitContainer: false,
+				},
+			},
+		},
+		Status: "Ready",
+	}
+
+	mysqlStatefulSet := models.StatefulSetWorkload{
+		GeneralWorkloadInfo: models.GeneralWorkloadInfo{
+			WorkloadName: "mysql",
+			Namespace:    "mysql",
+			Labels:       labels,
+			Annotations:  annotations,
+			Selector:     selector,
+			Containers: []models.Container{
+				{
+					ContainerName: "mysql",
+					Image:         "mysql",
+					ImageVersion:  "8.1",
+					RequestCPU:    100,
+					RequestMemory: 100,
+					LimitCPU:      200,
+					LimitMemory:   200,
+					InitContainer: false,
+				},
+			},
+		},
+		Status: models.StatefulSetStatus{
+			Current:   1,
+			Ready:     1,
+			Up2date:   1,
+			Available: 1,
+			Replicas:  3,
+		},
+	}
+
+	collection1 := models.NewCollection()
+	collection1.Set("wordpress", wordpressDeployment, true)
+	collection1.Set("mysql", mysqlStatefulSet, true)
+	collection1.Set("filebeat", filebeatDaemonSet, true)
+	collection1.Set("bash-debugging", bashPod, true)
+
+	assert.NoError(t, ds.ReplaceWorkloads(collection1))
+	resultCollection, err := ds.GetAllWorkloads()
+	assert.NoError(t, err)
+	assert.Equal(t, collection1.Len(), resultCollection.Len())
+	assert.True(t, models.CompareCollections(collection1, resultCollection, CompareWorkloads), "The collections need to be equal")
+
+	result, err := ds.GetWorkloadsByNamespace("mysql")
+	assert.NoError(t, err)
+	assert.Equal(t, 1, result.Len())
+	assert.Equal(t, result.ToList()[0].(models.Workload).GetWorkloadName(), "mysql")
+	assert.Equal(t, result.ToList()[0].(models.Workload).GetNamespace(), "mysql")
+}
