@@ -41,7 +41,7 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: ['"Montserrat"', 'Open Sans'].join(','),
-    fontSize: 14,
+    fontSize: 12,
     h1: {
       fontSize: 26,
     },

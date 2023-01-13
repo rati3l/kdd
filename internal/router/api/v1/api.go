@@ -6,17 +6,21 @@ import (
 	"sort"
 
 	"github.com/gin-gonic/gin"
+
 	"gitlab.com/patrick.erber/kdd/internal/models"
 	"gitlab.com/patrick.erber/kdd/internal/persistence"
+	"gitlab.com/patrick.erber/kdd/internal/services"
 )
 
 type API struct {
 	ds *persistence.DataStore
+	ka *services.KubeAPIAdapter
 }
 
-func NewAPI(ds *persistence.DataStore) *API {
+func NewAPI(ds *persistence.DataStore, ka *services.KubeAPIAdapter) *API {
 	return &API{
 		ds: ds,
+		ka: ka,
 	}
 }
 
@@ -68,27 +72,42 @@ func (a *API) GetNamespace(c *gin.Context) {
 		return
 	}
 
-	collection, err := a.ds.GetWorkloadsByNamespace(name)
+	workloadsCollection, err := a.ds.GetWorkloadsByNamespace(name)
 	if err != nil {
 		a.Response(c, http.StatusInternalServerError, ERROR, "an internal server error occurred")
 		return
 	}
 
-	// sorting result
-	result := collection.ToList()
-	workloads := make([]models.Workload, len(result))
-	for i := 0; i < len(result); i++ {
-		workloads[i] = result[i].(models.Workload)
+	eventsCollection, err := a.ka.GetEventsForNamespace(name)
+	if err != nil {
+		a.Response(c, http.StatusInternalServerError, ERROR, "an internal server error occurred")
+		return
+	}
+
+	// sorting workload result
+	workloadResult := workloadsCollection.ToList()
+	workloads := make([]models.Workload, len(workloadResult))
+	for i := 0; i < len(workloadResult); i++ {
+		workloads[i] = workloadResult[i].(models.Workload)
 	}
 
 	sort.Sort(models.ByWorkloadName(workloads))
 
+	// casting event list
+	eventResult := eventsCollection.ToList()
+	events := make([]models.Event, len(eventResult))
+	for i := 0; i < len(eventResult); i++ {
+		events[i] = eventResult[i].(models.Event)
+	}
+
 	a.Response(c, http.StatusOK, SUCCESS, struct {
 		Namespace models.Namespace  `json:"namespace"`
 		Workloads []models.Workload `json:"workloads"`
+		Events    []models.Event    `json:"events"`
 	}{
 		Namespace: *namespace,
 		Workloads: workloads,
+		Events:    events,
 	})
 }
 

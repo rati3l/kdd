@@ -7,9 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"gitlab.com/patrick.erber/kdd/internal/persistence"
 	v1 "gitlab.com/patrick.erber/kdd/internal/router/api/v1"
+	"gitlab.com/patrick.erber/kdd/internal/services"
 )
 
-func InitRouter(ds *persistence.DataStore) *gin.Engine {
+func InitRouter(ds *persistence.DataStore, ka *services.KubeAPIAdapter) *gin.Engine {
 	r := gin.New()
 
 	r.StaticFS("/static", http.Dir("../_ui/build/static"))
@@ -25,7 +26,7 @@ func InitRouter(ds *persistence.DataStore) *gin.Engine {
 
 	apiv1 := r.Group("/api/v1")
 	{
-		api := v1.NewAPI(ds)
+		api := v1.NewAPI(ds, ka)
 		apiv1.GET("/namespaces", api.GetNamespaces)
 		apiv1.GET("/namespaces/:name", api.GetNamespace)
 		apiv1.GET("/workloads", api.GetWorkloads)

@@ -71,7 +71,7 @@ func (d DeploymentWorkload) MarshalJSON() ([]byte, error) {
 type DeploymentStatus struct {
 	Desired   int `json:"desired"`
 	Ready     int `json:"ready"`
-	Available int `json:"status"`
+	Available int `json:"available"`
 	Up2date   int `json:"up2date"`
 }
 
@@ -260,7 +260,7 @@ func (d StatefulSetWorkload) GetCreationTimestamp() time.Time {
 	return d.CreationTimestamp
 }
 
-// PodWorkload - represents a deployment workload
+// PodWorkload - represents a pod
 type PodWorkload struct {
 	GeneralWorkloadInfo `json:"workload_info"`
 	Status              string `json:"status"`
