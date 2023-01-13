@@ -130,6 +130,9 @@ function PageContainer(props: Props) {
                 </DrawerHeader>
                 <Divider />
                 <List>
+                    <ListItem>
+                        <ListItemText disableTypography primary={<Typography variant="body2" style={{ fontWeight: "bold" }}>Cluster</Typography>} />
+                    </ListItem>
                     <ListItem disablePadding>
                         <ListItemButton>
                             <ListItemText primary="Nodes" />
@@ -140,12 +143,25 @@ function PageContainer(props: Props) {
                             <ListItemText primary="Namespaces" />
                         </ListItemButton>
                     </ListItem>
+                    <Divider />
+                    <ListItem>
+                        <ListItemText disableTypography primary={<Typography variant="body2" style={{ fontWeight: "bold" }}>Workloads</Typography>} />
+                    </ListItem>
                     <ListItem disablePadding>
-                        <ListItemButton>
-                            <ListItemText primary="Workloads" />
+                        <ListItemButton href="/ui/workloads/deployments" >
+                            <ListItemText primary="Deployments" />
                         </ListItemButton>
                     </ListItem>
-
+                    <ListItem disablePadding>
+                        <ListItemButton href="/ui/workloads/statefulsets" >
+                            <ListItemText primary="Statefulsets" />
+                        </ListItemButton>
+                    </ListItem>
+                    <ListItem disablePadding>
+                        <ListItemButton href="/ui/workloads/daemonsets" >
+                            <ListItemText primary="Daemonsets" />
+                        </ListItemButton>
+                    </ListItem>
                 </List>
             </Drawer>
             <Main open={open}>

@@ -130,6 +130,63 @@ func (a *API) GetWorkloads(c *gin.Context) {
 	a.Response(c, http.StatusOK, SUCCESS, workloads)
 }
 
+func (a *API) GetDeplyments(c *gin.Context) {
+	collection, err := a.ds.GetAllByWorkloadType(models.WORKLOAD_TYPE_DEPLOYMENT)
+	if err != nil {
+		a.Response(c, http.StatusInternalServerError, ERROR, nil)
+		return
+	}
+
+	// sorting result
+	result := collection.ToList()
+	workloads := make([]models.Workload, len(result))
+	for i := 0; i < len(result); i++ {
+		workloads[i] = result[i].(models.Workload)
+	}
+
+	sort.Sort(models.ByWorkloadName(workloads))
+
+	a.Response(c, http.StatusOK, SUCCESS, workloads)
+}
+
+func (a *API) GetStatefulSets(c *gin.Context) {
+	collection, err := a.ds.GetAllByWorkloadType(models.WORKLOAD_TYPE_STATEFULSET)
+	if err != nil {
+		a.Response(c, http.StatusInternalServerError, ERROR, nil)
+		return
+	}
+
+	// sorting result
+	result := collection.ToList()
+	workloads := make([]models.Workload, len(result))
+	for i := 0; i < len(result); i++ {
+		workloads[i] = result[i].(models.Workload)
+	}
+
+	sort.Sort(models.ByWorkloadName(workloads))
+
+	a.Response(c, http.StatusOK, SUCCESS, workloads)
+}
+
+func (a *API) GetDaemonSet(c *gin.Context) {
+	collection, err := a.ds.GetAllByWorkloadType(models.WORKLOAD_TYPE_DEAMONSET)
+	if err != nil {
+		a.Response(c, http.StatusInternalServerError, ERROR, nil)
+		return
+	}
+
+	// sorting result
+	result := collection.ToList()
+	workloads := make([]models.Workload, len(result))
+	for i := 0; i < len(result); i++ {
+		workloads[i] = result[i].(models.Workload)
+	}
+
+	sort.Sort(models.ByWorkloadName(workloads))
+
+	a.Response(c, http.StatusOK, SUCCESS, workloads)
+}
+
 func (a *API) GetContainerMetrics(c *gin.Context) {
 	collection, err := a.ds.GetAllMetrics()
 	if err != nil {

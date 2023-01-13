@@ -2,6 +2,7 @@ import { Chip, Stack } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import moment from "moment";
 import { styled } from '@mui/material/styles';
+import React from "react";
 
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     "& .MuiDataGrid-renderingZone": {
@@ -29,13 +30,15 @@ const renderDate = () => {
 
 const renderChips = (color: any) => {
     return (params: GridRenderCellParams<any>) => {
-        return <Stack direction="row" sx={{ width: 380, flexWrap: "wrap" }}>{Object.keys(params.value).map((key) => {
-            return <Chip title={key + "=" + params?.value[key]} label={key + "=" + params?.value[key]} sx={{ marginRight: "5px", marginBottom: "5px" }} size="small" variant="filled" color={color} />
-        })}
-        </Stack>
+        if (params.value) {
+            return <Stack direction="row" sx={{ width: 380, flexWrap: "wrap" }}>{Object.keys(params.value).map((key) => {
+                return <Chip title={key + "=" + params?.value[key]} label={key + "=" + params?.value[key]} sx={{ marginRight: "5px", marginBottom: "5px" }} size="small" variant="filled" color={color} />
+            })}
+            </Stack>
+        }
+        return <React.Fragment />
     }
 }
-
 
 const renderStatus = (params: GridRenderCellParams<any>) => {
     const colorFunc = (type: string) => {
@@ -56,7 +59,7 @@ const renderStatus = (params: GridRenderCellParams<any>) => {
 const columns: GridColDef[] = [
     {
         field: 'workload_name',
-        headerName: 'workload_name',
+        headerName: 'name',
         width: 200,
     },
     {
@@ -97,7 +100,7 @@ const columns: GridColDef[] = [
     },
     {
         field: 'creation_date',
-        headerName: 'creation_date',
+        headerName: 'creation date',
         width: 200,
         renderCell: renderDate()
     },
@@ -108,7 +111,7 @@ type Props = {
     height: string;
 }
 
-function StatefulSeteDataGrid(props: Props) {
+function StatefulSetDataGrid(props: Props) {
     const flatten_rows: any = props.rows.map((row) => {
         return {
             workload_name: row.workload_info.workload_name,
@@ -124,4 +127,4 @@ function StatefulSeteDataGrid(props: Props) {
     return <StyledDataGrid disableSelectionOnClick={true} getRowId={(row: any) => { return `${row.workload_name}_${row.namespace}` }} rows={flatten_rows} columns={columns} sx={{ height: props.height }} />
 }
 
-export default StatefulSeteDataGrid
+export default StatefulSetDataGrid

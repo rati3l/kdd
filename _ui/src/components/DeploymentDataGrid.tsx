@@ -2,6 +2,7 @@ import { Chip, Stack } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import moment from "moment";
 import { styled } from '@mui/material/styles';
+import React from "react";
 
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     "& .MuiDataGrid-renderingZone": {
@@ -29,10 +30,13 @@ const renderDate = () => {
 
 const renderChips = (color: any) => {
     return (params: GridRenderCellParams<any>) => {
-        return <Stack direction="row" sx={{ width: 380, flexWrap: "wrap" }}>{Object.keys(params.value).map((key) => {
-            return <Chip title={key + "=" + params?.value[key]} label={key + "=" + params?.value[key]} sx={{ marginRight: "5px", marginBottom: "5px" }} size="small" variant="filled" color={color} />
-        })}
-        </Stack>
+        if (params.value) {
+            return <Stack direction="row" sx={{ width: 380, flexWrap: "wrap" }}>{Object.keys(params.value).map((key) => {
+                return <Chip title={key + "=" + params?.value[key]} label={key + "=" + params?.value[key]} sx={{ marginRight: "5px", marginBottom: "5px" }} size="small" variant="filled" color={color} />
+            })}
+            </Stack>
+        }
+        return <React.Fragment />
     }
 }
 
@@ -42,7 +46,7 @@ const renderStatus = (params: GridRenderCellParams<any>) => {
         switch (type) {
             case "loading":
                 return "error"
-            case "running": 
+            case "running":
                 return "success"
             default:
                 return "secondary"
@@ -56,7 +60,7 @@ const renderStatus = (params: GridRenderCellParams<any>) => {
 const columns: GridColDef[] = [
     {
         field: 'workload_name',
-        headerName: 'workload_name',
+        headerName: 'name',
         width: 200,
     },
     {
@@ -107,7 +111,7 @@ const columns: GridColDef[] = [
     },
     {
         field: 'creation_date',
-        headerName: 'creation_date',
+        headerName: 'creation date',
         width: 200,
         renderCell: renderDate()
     },

@@ -287,6 +287,22 @@ func (d *DataStore) GetAllWorkloads() (*models.Collection, error) {
 	return d.createWorkloadCollection(rows)
 }
 
+func (d *DataStore) GetAllByWorkloadType(t string) (*models.Collection, error) {
+	sqlStmt := "SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, creation_timestamp FROM workloads WHERE workload_type=?"
+	stmt, err := d.db.Prepare(sqlStmt)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := stmt.Query(t)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	return d.createWorkloadCollection(rows)
+}
+
 func (*DataStore) createWorkloadCollection(rows *sql.Rows) (*models.Collection, error) {
 	collection := models.NewCollection()
 	for rows.Next() {
