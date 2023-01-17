@@ -108,10 +108,15 @@ func main() {
 		Handler:        router.InitRouter(ds, services.NewKubeAPIAdapter(&services.KubeAPIAdapterConfig{ClientSet: buildClientSet()})),
 	}
 
-	err = server.ListenAndServe()
-	if errors.Is(err, http.ErrServerClosed) {
-		zap.L().Info("server closed")
-	} else if err != nil {
-		zap.L().Fatal("error starting server", zap.Error(err))
-	}
+	go func() {
+		err = server.ListenAndServe()
+		if errors.Is(err, http.ErrServerClosed) {
+			zap.L().Info("server closed")
+		} else if err != nil {
+			zap.L().Fatal("error starting server", zap.Error(err))
+		}
+	}()
+
+	<-sigReceiver // wait for the termination signal
+
 }
