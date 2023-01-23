@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS workloads (
 	labels TEXT NOT NULL,
 	selector TEXT NOT NULL,
 	containers TEXT NOT NULL,
+	restarts INT,
 	status TEXT NOT NULL, 
 	creation_timestamp INTEGER NOT NULL
 );
@@ -57,7 +58,25 @@ CREATE INDEX IF NOT EXISTS idx_namespaces_name ON namespaces(name);
 CREATE INDEX IF NOT EXISTS idx_workloads_namespacename ON workloads(namespace);
 CREATE INDEX IF NOT EXISTS idx_container_metrics_pod_name ON container_metrics(pod_name);
 CREATE INDEX IF NOT EXISTS idx_container_metrics_container_name ON container_metrics(container_name);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_container_metrics_unique_key_creation_timestamp ON container_metrics(key, creation_timestamp)`
+CREATE UNIQUE INDEX IF NOT EXISTS idx_container_metrics_unique_key_creation_timestamp ON container_metrics(key, creation_timestamp)
+`
+
+func filterWorkloadBySelector(selectorFilter map[string]string) models.FilterFunc {
+	return func(a interface{}) bool {
+		workload := a.(models.Workload)
+		found := 0
+		for selectorKey, selectorValue := range selectorFilter {
+			for workloadKey, workloadValue := range workload.GetLabels() {
+				if workloadKey == selectorKey && workloadValue == selectorValue {
+					found++
+					break
+				}
+			}
+		}
+
+		return len(selectorFilter) == found
+	}
+}
 
 // NewSQLiteDataStore creates a new instance of the data store.
 func NewSQLiteDataStore(filename string) (*DataStore, error) {
@@ -221,9 +240,9 @@ func (d *DataStore) GetNamespace(name string) (*models.Namespace, error) {
 }
 
 func (d *DataStore) ReplaceWorkloads(collection *models.Collection) error {
-	cntFields := 10
-	sqlStmtHead := "REPLACE INTO workloads (key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, creation_timestamp) VALUES "
-	sqlStmtVals := "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	cntFields := 11
+	sqlStmtHead := "REPLACE INTO workloads (key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, restarts, creation_timestamp) VALUES "
+	sqlStmtVals := "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	rows := collection.Len()
 	values := make([]any, rows*cntFields)
 	i := 0
@@ -260,7 +279,13 @@ func (d *DataStore) ReplaceWorkloads(collection *models.Collection) error {
 		values[i+6] = string(selector)
 		values[i+7] = string(containers)
 		values[i+8] = string(status)
-		values[i+9] = strconv.FormatInt(creationTimestamp, 10)
+
+		if value, ok := workload.(models.PodWorkload); ok {
+			values[i+9] = value.Restarts
+		} else {
+			values[i+9] = "0"
+		}
+		values[i+10] = strconv.FormatInt(creationTimestamp, 10)
 		i += cntFields
 	}
 
@@ -272,7 +297,7 @@ func (d *DataStore) ReplaceWorkloads(collection *models.Collection) error {
 }
 
 func (d *DataStore) GetAllWorkloads() (*models.Collection, error) {
-	sqlStmt := "SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, creation_timestamp FROM workloads"
+	sqlStmt := "SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, restarts, creation_timestamp FROM workloads"
 	stmt, err := d.db.Prepare(sqlStmt)
 	if err != nil {
 		return nil, err
@@ -288,7 +313,7 @@ func (d *DataStore) GetAllWorkloads() (*models.Collection, error) {
 }
 
 func (d *DataStore) GetAllByWorkloadType(t string) (*models.Collection, error) {
-	sqlStmt := "SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, creation_timestamp FROM workloads WHERE workload_type=?"
+	sqlStmt := "SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, restarts, creation_timestamp FROM workloads WHERE workload_type=?"
 	stmt, err := d.db.Prepare(sqlStmt)
 	if err != nil {
 		return nil, err
@@ -316,12 +341,13 @@ func (*DataStore) createWorkloadCollection(rows *sql.Rows) (*models.Collection, 
 		var rawContainers []byte
 		var rawStatus []byte
 		var creationTimestamp int
+		var restarts int
 		containers := make([]models.Container, 0)
 		labels := make(map[string]string)
 		annotations := make(map[string]string)
 		selector := make(map[string]string)
 
-		if err := rows.Scan(&key, &workloadName, &workloadType, &namespace, &rawLabels, &rawAnnotations, &rawSelector, &rawContainers, &rawStatus, &creationTimestamp); err != nil {
+		if err := rows.Scan(&key, &workloadName, &workloadType, &namespace, &rawLabels, &rawAnnotations, &rawSelector, &rawContainers, &rawStatus, &restarts, &creationTimestamp); err != nil {
 			zap.L().Error("Could not scan result from sqllite database", zap.Error(err))
 			return nil, err
 		}
@@ -395,6 +421,7 @@ func (*DataStore) createWorkloadCollection(rows *sql.Rows) (*models.Collection, 
 			wl := models.PodWorkload{
 				GeneralWorkloadInfo: workloadInfo,
 				Status:              status,
+				Restarts:            restarts,
 			}
 			collection.Set(key, wl, false)
 		default:
@@ -406,7 +433,7 @@ func (*DataStore) createWorkloadCollection(rows *sql.Rows) (*models.Collection, 
 }
 
 func (d *DataStore) GetWorkloadsByNamespace(namespace string) (*models.Collection, error) {
-	sqlStmt := "SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, creation_timestamp FROM workloads WHERE namespace=?"
+	sqlStmt := "SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, restarts, creation_timestamp FROM workloads WHERE namespace=?"
 	stmt, err := d.db.Prepare(sqlStmt)
 	if err != nil {
 		return nil, err
@@ -419,6 +446,159 @@ func (d *DataStore) GetWorkloadsByNamespace(namespace string) (*models.Collectio
 
 	defer rows.Close()
 	return d.createWorkloadCollection(rows)
+}
+
+func (d *DataStore) GetMetricsForPodsInNamespace(namespace string, workloads []models.Workload) (*models.Collection, error) {
+	podNames := make([]any, len(workloads))
+	for i, workload := range workloads {
+		podNames[i] = workload.GetWorkloadName()
+		if workload.GetType() != models.WORKLOAD_TYPE_POD {
+			return nil, fmt.Errorf("the workload needs to be a pod. workload_type: %s", workload.GetType())
+		}
+	}
+
+	if len(podNames) == 0 {
+		return nil, fmt.Errorf("no pods given")
+	}
+
+	sqlStmt := "SELECT key, pod_name, container_name, namespace, cpu_usage, memory_usage, creation_timestamp FROM container_metrics WHERE namespace=? AND pod_name IN "
+
+	var sb strings.Builder
+	sb.WriteString(sqlStmt)
+
+	sb.WriteRune('(')
+	for i := 0; i < len(podNames); i++ {
+		sb.WriteRune('?')
+		if i != len(podNames)-1 {
+			sb.WriteString(", ")
+		} else {
+			sb.WriteRune(')')
+		}
+	}
+
+	stmt, err := d.db.Prepare(sb.String())
+	if err != nil {
+		return nil, err
+	}
+
+	whereValues := make([]any, 0)
+	whereValues = append(whereValues, namespace)
+	whereValues = append(whereValues, podNames...)
+
+	rows, err := stmt.Query(whereValues...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	resultCollection := models.NewCollection()
+
+	for rows.Next() {
+		var key string
+		var podName string
+		var containerName string
+		var namespace string
+		var cpuUsage int64
+		var memoryUsage int64
+		var creationTimestamp int
+
+		if err := rows.Scan(&key, &podName, &containerName, &namespace, &cpuUsage, &memoryUsage, &creationTimestamp); err != nil {
+			zap.L().Error("Could not scan result from sqlite database", zap.Error(err))
+			return nil, err
+		}
+
+		resultCollection.Set(fmt.Sprintf("%s_%s_%d", podName, namespace, creationTimestamp), models.PodContainerMetric{
+			PodName:           podName,
+			Namespace:         namespace,
+			ContainerName:     containerName,
+			CPUUsage:          cpuUsage,
+			MemoryUsage:       memoryUsage,
+			CreationTimestamp: time.Unix(int64(creationTimestamp), 0),
+		}, true)
+	}
+
+	return resultCollection, nil
+}
+
+func (d *DataStore) GetWorkloadBy(filters map[string]string) (models.Workload, error) {
+	sqlParams := make([]string, len(filters))
+	values := make([]any, len(filters))
+	i := 0
+	for key, val := range filters {
+		if key != "namespace" && key != "workload_name" && key != "workload_type" {
+			return nil, fmt.Errorf("invalid parameters found")
+		}
+
+		sqlParams[i] = fmt.Sprintf("%s = ?", key)
+		values[i] = val
+		i++
+	}
+
+	sqlStmt := fmt.Sprintf("SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, restarts, creation_timestamp FROM workloads WHERE %s LIMIT 1", strings.Join(sqlParams, " AND "))
+	stmt, err := d.db.Prepare(sqlStmt)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := stmt.Query(values...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	collectionResult, err := d.createWorkloadCollection(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	if collectionResult.Len() < 1 {
+		return nil, fmt.Errorf("no result found")
+	}
+
+	return collectionResult.ToList()[0].(models.Workload), nil
+}
+
+func (d *DataStore) GetWorkloadsBy(filters map[string]string) (*models.Collection, error) {
+	sqlParams := make([]string, len(filters))
+	values := make([]any, len(filters))
+	i := 0
+	for key, val := range filters {
+		if key != "namespace" && key != "workload_name" && key != "workload_type" {
+			return nil, fmt.Errorf("invalid parameters found")
+		}
+
+		sqlParams[i] = fmt.Sprintf("%s = ?", key)
+		values[i] = val
+		i++
+	}
+
+	sqlStmt := fmt.Sprintf("SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, restarts, creation_timestamp FROM workloads WHERE %s", strings.Join(sqlParams, " AND "))
+	stmt, err := d.db.Prepare(sqlStmt)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := stmt.Query(values...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	return d.createWorkloadCollection(rows)
+}
+
+func (d *DataStore) GetPodsForWorkload(w models.Workload) (*models.Collection, error) {
+	filter := make(map[string]string)
+	filter["namespace"] = w.GetNamespace()
+	filter["workload_type"] = models.WORKLOAD_TYPE_POD
+	collection, err := d.GetWorkloadsBy(filter)
+	if err != nil {
+		return nil, err
+	}
+	return collection.Filter(filterWorkloadBySelector(w.GetSelector())), nil
 }
 
 func (d *DataStore) replace(sqlStmtHead string, sqlStmtVals string, rows int, values []any) error {

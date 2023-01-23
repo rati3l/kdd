@@ -6,6 +6,7 @@ import (
 )
 
 type CollectionCompareFunc func(a interface{}, b interface{}) bool
+type FilterFunc func(a interface{}) bool
 
 // Collection - thread safe collection which stores data
 type Collection struct {
@@ -52,6 +53,17 @@ func (c *Collection) GetKeys() []string {
 	}
 
 	return keys
+}
+
+func (c *Collection) Filter(f FilterFunc) *Collection {
+	filteredCollection := NewCollection()
+	for key, item := range c.items {
+		if f(item) {
+			filteredCollection.Set(key, item, true)
+		}
+	}
+
+	return filteredCollection
 }
 
 func (c *Collection) ToList() []interface{} {

@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"gitlab.com/patrick.erber/kdd/internal/models"
 	"gitlab.com/patrick.erber/kdd/internal/persistence"
@@ -130,8 +132,19 @@ func (a *API) GetWorkloads(c *gin.Context) {
 	a.Response(c, http.StatusOK, SUCCESS, workloads)
 }
 
-func (a *API) GetDeplyments(c *gin.Context) {
-	collection, err := a.ds.GetAllByWorkloadType(models.WORKLOAD_TYPE_DEPLOYMENT)
+func (a *API) GetDeployments(c *gin.Context) {
+	f := make(map[string]string)
+	f["workload_type"] = models.WORKLOAD_TYPE_DEPLOYMENT
+
+	if c.Query("namespace") != "" {
+		f["namespace"] = c.Query("namespace")
+	}
+
+	if c.Query("name") != "" {
+		f["name"] = c.Query("name")
+	}
+
+	collection, err := a.ds.GetWorkloadsBy(f)
 	if err != nil {
 		a.Response(c, http.StatusInternalServerError, ERROR, nil)
 		return
@@ -147,6 +160,83 @@ func (a *API) GetDeplyments(c *gin.Context) {
 	sort.Sort(models.ByWorkloadName(workloads))
 
 	a.Response(c, http.StatusOK, SUCCESS, workloads)
+}
+
+func (a *API) GetDeployment(c *gin.Context) {
+	f := make(map[string]string)
+	f["workload_type"] = models.WORKLOAD_TYPE_DEPLOYMENT
+
+	if c.Param("namespace") != "" {
+		f["namespace"] = c.Param("namespace")
+	} else {
+		a.Response(c, http.StatusBadRequest, BAD_REQUEST, nil)
+		return
+	}
+
+	if c.Param("name") != "" {
+		f["workload_name"] = c.Param("name")
+	} else {
+		a.Response(c, http.StatusBadRequest, BAD_REQUEST, nil)
+		return
+	}
+
+	workload, err := a.ds.GetWorkloadBy(f)
+	if err != nil {
+		a.Response(c, http.StatusInternalServerError, ERROR, nil)
+		return
+	}
+
+	podsCollection, err := a.ds.GetPodsForWorkload(workload)
+	if err != nil {
+		a.Response(c, http.StatusInternalServerError, ERROR, nil)
+		return
+	}
+
+	// sorting result
+	result := podsCollection.ToList()
+	pods := make([]models.Workload, len(result))
+	for i := 0; i < len(result); i++ {
+		pods[i] = result[i].(models.Workload)
+	}
+
+	sort.Sort(models.ByWorkloadName(pods))
+
+	rate := time.Minute * 5
+	if c.Query("rate") != "" {
+		rate, err = time.ParseDuration(c.Query("rate"))
+		if err != nil {
+			zap.L().Error("Could not parse value for rate", zap.String("query_rate", c.Query("rate")))
+			a.Response(c, http.StatusBadRequest, BAD_REQUEST, nil)
+		}
+	}
+
+	a.Response(c, http.StatusOK, SUCCESS, struct {
+		Workload models.Workload             `json:"workload"`
+		Pods     []models.Workload           `json:"pods"`
+		Metrics  []models.PodContainerMetric `json:"metrics"`
+	}{
+		Workload: workload,
+		Pods:     pods,
+		Metrics:  a.getPodMetrics(c.Param("namespace"), pods, rate),
+	})
+}
+
+func (a *API) getPodMetrics(namespace string, pods []models.Workload, rate time.Duration) []models.PodContainerMetric {
+	result, err := a.ds.GetMetricsForPodsInNamespace(namespace, pods)
+	if err != nil {
+		zap.L().Error("could not load metrics for pods")
+		return make([]models.PodContainerMetric, 0)
+	}
+
+	list := result.ToList()
+	metrics := make([]models.PodContainerMetric, len(list))
+	for i := 0; i < len(list); i++ {
+		metrics[i] = list[i].(models.PodContainerMetric)
+	}
+
+	sort.Sort(models.ByContainerMetricsTimestamp(metrics))
+
+	return models.ReduceMetrics(metrics, rate)
 }
 
 func (a *API) GetStatefulSets(c *gin.Context) {
@@ -193,5 +283,24 @@ func (a *API) GetContainerMetrics(c *gin.Context) {
 		a.Response(c, http.StatusInternalServerError, ERROR, nil)
 		return
 	}
-	a.Response(c, http.StatusOK, SUCCESS, collection.ToList())
+
+	// sorting result
+	result := collection.ToList()
+	metrics := make([]models.PodContainerMetric, len(result))
+	for i := 0; i < len(result); i++ {
+		metrics[i] = result[i].(models.PodContainerMetric)
+	}
+
+	sort.Sort(models.ByContainerMetricsTimestamp(metrics))
+
+	rate := time.Minute * 5
+	if c.Query("rate") != "" {
+		rate, err = time.ParseDuration(c.Query("rate"))
+		if err != nil {
+			zap.L().Error("Could not parse value for rate", zap.String("query_rate", c.Query("rate")))
+			a.Response(c, http.StatusBadRequest, BAD_REQUEST, nil)
+		}
+	}
+
+	a.Response(c, http.StatusOK, SUCCESS, models.ReduceMetrics(metrics, rate))
 }

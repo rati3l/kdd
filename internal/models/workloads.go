@@ -19,6 +19,14 @@ func (a ByWorkloadName) Len() int           { return len(a) }
 func (a ByWorkloadName) Less(i, j int) bool { return a[i].GetWorkloadName() < a[j].GetWorkloadName() }
 func (a ByWorkloadName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
+type ByContainerMetricsTimestamp []PodContainerMetric
+
+func (a ByContainerMetricsTimestamp) Len() int { return len(a) }
+func (a ByContainerMetricsTimestamp) Less(i, j int) bool {
+	return a[i].CreationTimestamp.Before(a[j].CreationTimestamp)
+}
+func (a ByContainerMetricsTimestamp) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 // ByNamespaceName implements sort.Interface based on the Namespace name field.
 type ByNamespaceName []Namespace
 
@@ -264,6 +272,7 @@ func (d StatefulSetWorkload) GetCreationTimestamp() time.Time {
 type PodWorkload struct {
 	GeneralWorkloadInfo `json:"workload_info"`
 	Status              string `json:"status"`
+	Restarts            int    `json:"restarts"`
 }
 
 func (p PodWorkload) MarshalJSON() ([]byte, error) {
@@ -271,10 +280,12 @@ func (p PodWorkload) MarshalJSON() ([]byte, error) {
 		GeneralWorkloadInfo `json:"workload_info"`
 		Status              string `json:"status"`
 		Type                string `json:"type"`
+		Restarts            int    `json:"restarts"`
 	}{
 		GeneralWorkloadInfo: p.GeneralWorkloadInfo,
 		Status:              p.Status,
 		Type:                p.GetType(),
+		Restarts:            p.Restarts,
 	})
 }
 
@@ -330,5 +341,6 @@ type Container struct {
 	RequestMemory int64  `json:"request_memory"` // Request Memory
 	LimitCPU      int64  `json:"limit_cpu"`      // Limit CPU
 	LimitMemory   int64  `json:"limit_memory"`   // Limit Memory
+	Restarts      int    `json:"restarts"`
 	InitContainer bool   `json:"init_container"` // Init Container (yes, no)
 }

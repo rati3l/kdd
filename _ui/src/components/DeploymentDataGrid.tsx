@@ -1,4 +1,4 @@
-import { Chip, Stack } from "@mui/material";
+import { Chip, Link, Stack } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import moment from "moment";
 import { styled } from '@mui/material/styles';
@@ -62,6 +62,11 @@ const columns: GridColDef[] = [
         field: 'workload_name',
         headerName: 'name',
         width: 200,
+        renderCell: (params: GridRenderCellParams<any>) => {
+            const name = params.row["workload_name"]
+            const namespace = params.row["namespace"]
+            return <Link href={`/ui/workloads/deployments/${namespace}/${name}`}>{name}</Link>
+        }
     },
     {
         field: 'status',

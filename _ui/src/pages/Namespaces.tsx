@@ -46,8 +46,11 @@ function Namespaces(props: Props) {
                             case "Statefulset":
                                 statefulsets++
                                 break
+                            case "Pod":
+                                // nothing to do here
+                                break
                             default:
-                                console.error("unkown workload type found", w.workload_info.type)
+                                console.error("unkown workload type found", w.type)
                         }
                     })
 

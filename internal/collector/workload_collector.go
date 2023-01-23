@@ -81,6 +81,10 @@ func (w *WorkloadCollector) Collect() (*CollectorResult, error) {
 		return nil, err
 	}
 
+	if err := w.collectPods(result.workloadCollection); err != nil {
+		return nil, err
+	}
+
 	if err := w.collectContainerMetrics(result.containerMetricsCollection); err != nil {
 		return nil, err
 	}
@@ -121,7 +125,7 @@ func (w *WorkloadCollector) collectDeployments(collection *models.Collection) er
 	for _, deployment := range deploymentList.Items {
 		listOfContainers := deployment.Spec.Template.Spec.Containers
 		listOfInitContainers := deployment.Spec.Template.Spec.InitContainers
-		containers := w.buildContainerList(listOfContainers, listOfInitContainers)
+		containers := w.buildContainerList(listOfContainers, listOfInitContainers, nil)
 
 		err := collection.Set(fmt.Sprintf("%s_%s", deployment.ObjectMeta.Namespace, deployment.Name), models.DeploymentWorkload{
 			GeneralWorkloadInfo: models.GeneralWorkloadInfo{
@@ -159,7 +163,7 @@ func (w *WorkloadCollector) collectDaemonSets(collection *models.Collection) err
 	for _, daemonset := range daemonsetList.Items {
 		listOfContainers := daemonset.Spec.Template.Spec.Containers
 		listOfInitContainers := daemonset.Spec.Template.Spec.InitContainers
-		containers := w.buildContainerList(listOfContainers, listOfInitContainers)
+		containers := w.buildContainerList(listOfContainers, listOfInitContainers, nil)
 
 		err := collection.Set(fmt.Sprintf("%s_%s", daemonset.ObjectMeta.Namespace, daemonset.Name), models.DaemonSetWorkload{
 			GeneralWorkloadInfo: models.GeneralWorkloadInfo{
@@ -197,7 +201,7 @@ func (w *WorkloadCollector) collectStatefulSet(collection *models.Collection) er
 	for _, statefulSet := range statefuleSetList.Items {
 		listOfContainers := statefulSet.Spec.Template.Spec.Containers
 		listOfInitContainers := statefulSet.Spec.Template.Spec.InitContainers
-		containers := w.buildContainerList(listOfContainers, listOfInitContainers)
+		containers := w.buildContainerList(listOfContainers, listOfInitContainers, nil)
 
 		err := collection.Set(fmt.Sprintf("%s_%s", statefulSet.ObjectMeta.Namespace, statefulSet.Name), models.StatefulSetWorkload{
 			GeneralWorkloadInfo: models.GeneralWorkloadInfo{
@@ -236,7 +240,14 @@ func (w *WorkloadCollector) collectPods(collection *models.Collection) error {
 	for _, pod := range podsList.Items {
 		listOfContainers := pod.Spec.Containers
 		listOfInitContainers := pod.Spec.InitContainers
-		containers := w.buildContainerList(listOfContainers, listOfInitContainers)
+		containers := w.buildContainerList(listOfContainers, listOfInitContainers, pod.Status.ContainerStatuses)
+
+		restarts := int32(0)
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			if restarts < containerStatus.RestartCount {
+				restarts = containerStatus.RestartCount
+			}
+		}
 
 		err := collection.Set(fmt.Sprintf("%s_%s", pod.ObjectMeta.Namespace, pod.Name), models.PodWorkload{
 			GeneralWorkloadInfo: models.GeneralWorkloadInfo{
@@ -247,7 +258,8 @@ func (w *WorkloadCollector) collectPods(collection *models.Collection) error {
 				Containers:        containers,
 				CreationTimestamp: pod.CreationTimestamp.Time,
 			},
-			Status: pod.Status.Reason,
+			Status:   string(pod.Status.Phase),
+			Restarts: int(restarts),
 		}, false)
 
 		if err != nil {
@@ -258,13 +270,21 @@ func (w *WorkloadCollector) collectPods(collection *models.Collection) error {
 	return nil
 }
 
-func (*WorkloadCollector) buildContainerList(listOfContainers []core_v1.Container, listOfInitContainers []core_v1.Container) []models.Container {
+func (*WorkloadCollector) buildContainerList(listOfContainers []core_v1.Container, listOfInitContainers []core_v1.Container, containerStatuses []core_v1.ContainerStatus) []models.Container {
 	containers := make([]models.Container, len(listOfContainers)+len(listOfInitContainers))
 	for i, container := range listOfContainers {
 		imageParts := strings.Split(container.Image, ":")
 		if len(imageParts) == 1 {
 			imageParts = append(imageParts, "latest")
 		}
+
+		restarts := 0
+		for _, containerStatus := range containerStatuses {
+			if container.Name == containerStatus.Name {
+				restarts = int(containerStatus.RestartCount)
+			}
+		}
+
 		containers[i] = models.Container{
 			Image:         imageParts[0],
 			ImageVersion:  imageParts[1],
@@ -273,6 +293,7 @@ func (*WorkloadCollector) buildContainerList(listOfContainers []core_v1.Containe
 			LimitMemory:   container.Resources.Limits.Memory().Value(),
 			RequestCPU:    container.Resources.Requests.Cpu().MilliValue(),
 			RequestMemory: container.Resources.Requests.Memory().Value(),
+			Restarts:      restarts,
 			InitContainer: false,
 		}
 	}
@@ -305,7 +326,8 @@ func (w *WorkloadCollector) collectContainerMetrics(collection *models.Collectio
 
 	for _, podMetric := range metrics.Items {
 		for _, container := range podMetric.Containers {
-			cpu := container.Usage.Cpu().AsDec().UnscaledBig().Int64()
+			//cpu := container.Usage.Cpu().AsDec().UnscaledBig().Int64()
+			cpu := container.Usage.Cpu().MilliValue()
 			memory := container.Usage.Memory().AsDec().UnscaledBig().Int64()
 
 			err := collection.Set(fmt.Sprintf("%s_%s_%s", podMetric.Namespace, podMetric.Name, container.Name), models.PodContainerMetric{
