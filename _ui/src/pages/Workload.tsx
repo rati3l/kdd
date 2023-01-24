@@ -228,12 +228,14 @@ function Workload(props: Props) {
                         requestsC.push(...containerRequestsCPU)
                         limitsC.push(...containerLimitsCPU)
 
+                        const containerMetrics:any = []
+
                         for (let i = 0; i < data.metrics.length; i++) {
                             if (p.workload_info.workload_name === data.metrics[i].podname && c.container_name === data.metrics[i].container_name) {
-                                return { ...c, metrics: { ...data.metrics[i] } }
+                                containerMetrics.push(data.metrics[i])
                             }
                         }
-                        return { ...c, metrics: [] }
+                        return { ...c, metrics: containerMetrics[containerMetrics.length -1] }
                     })
 
                     return p
