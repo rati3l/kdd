@@ -10,7 +10,7 @@ import Namespace from "./pages/Namespace";
 import Deployments from "./pages/Deployments";
 import StatefulSets from "./pages/Statefulsets";
 import DaemonSets from "./pages/Daemonsets";
-import Deployment from "./pages/Deployment";
+import Workload from "./pages/Workload";
 
 const LOCAL_STORAGE_REFRESH_INTERVAL_KEY = "refreshIntervalMS"
 
@@ -42,7 +42,7 @@ function App() {
             <Route path="/ui/namespaces" element={<Namespaces  refreshIntervalMS={refreshIntervalMS} />}></Route>
             <Route path="/ui/namespace/:name" element={<Namespace  refreshIntervalMS={refreshIntervalMS} />}></Route>
             <Route path="/ui/workloads/deployments" element={<Deployments  refreshIntervalMS={refreshIntervalMS} />}></Route>
-            <Route path="/ui/workloads/deployments/:namespace/:name" element={<Deployment  refreshIntervalMS={refreshIntervalMS} />}></Route>
+            <Route path="/ui/workloads/:workloadType/:namespace/:name" element={<Workload  refreshIntervalMS={refreshIntervalMS} />}></Route>
             <Route path="/ui/workloads/statefulsets" element={<StatefulSets  refreshIntervalMS={refreshIntervalMS} />}></Route>
             <Route path="/ui/workloads/daemonsets" element={<DaemonSets  refreshIntervalMS={refreshIntervalMS} />}></Route>
           </Routes>

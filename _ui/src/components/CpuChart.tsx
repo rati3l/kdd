@@ -165,7 +165,7 @@ function CpuChart(props: Props) {
                     label: {
                         display: false,
                         backgroundColor: 'rgba(100,149,237)',
-                        content: `${request.podname} - ${request.containerName} - Request CPU: ` + `${request.value}m`,
+                        content: `${request.podname} - ${request.containerName} - Request CPU: ${request.value}m`,
                         position: "end",
                     },
                     type: 'line',

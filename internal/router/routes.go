@@ -31,7 +31,7 @@ func InitRouter(ds *persistence.DataStore, ka *services.KubeAPIAdapter) *gin.Eng
 		apiv1.GET("/namespaces/:name", api.GetNamespace)
 		apiv1.GET("/workloads", api.GetWorkloads)
 		apiv1.GET("/workloads/deployments", api.GetDeployments)
-		apiv1.GET("/workloads/deployments/:namespace/:name", api.GetDeployment)
+		apiv1.GET("/workloads/:workloadType/:namespace/:name", api.GetWorkload)
 		apiv1.GET("/workloads/statefulsets", api.GetStatefulSets)
 		apiv1.GET("/workloads/daemonsets", api.GetDaemonSet)
 		apiv1.GET("/container-metrics", api.GetContainerMetrics)

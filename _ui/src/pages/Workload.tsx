@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react"
 import PageHead from "../components/PageHead"
 import { Box } from "@mui/system";
 import { Alert, Card, CardContent, Chip, CircularProgress, Collapse, Grid, IconButton, Paper, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
-import { useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import axios from "axios";
@@ -99,7 +99,62 @@ function Row(props: { row: any }) {
     );
 }
 
-function Deployment(props: Props) {
+const checkWorkloadType = (workloadType: string | undefined) => {
+    switch (workloadType) {
+        case "deployments":
+        case "statefulsets":
+        case "daemonsets":
+            return true
+        default:
+            return false
+    }
+}
+
+const getHeadlineByWorkloadType = (workloadType: string | undefined) => {
+    switch (workloadType) {
+        case "deployments":
+            return "Deployment"
+        case "statefulsets":
+            return "Statefulset"
+        case "daemonsets":
+            return "Daemonset"
+        default:
+            return ""
+    }
+}
+
+const renderStatusByWorkloadType = (workloadType: string | undefined, workload: any) => {
+    switch (workloadType) {
+        case "daemonsets":
+        case "deployments":
+            return (<React.Fragment><b>Ready/Desired: </b> {workload.status.desired} / {workload.status.ready}</React.Fragment>)
+        case "statefulsets":
+            return (<React.Fragment><b>Ready/Replicas: </b> {workload.status.ready} / {workload.status.replicas}</React.Fragment>)
+        default:
+            return <React.Fragment />
+    }
+}
+
+const getPodStatusBasedOnWorkloadType = (workloadType: string | undefined, workload: any) => {
+    switch (workloadType) {
+        case "daemonsets":
+        case "deployments":
+            if (workload.status.ready !== workload.status.desired) {
+                return "loading"
+            } else {
+                return "running"
+            }
+        case "statefulsets":
+            if (workload.status.ready !== workload.status.replicas) {
+                return "loading"
+            } else {
+                return "running"
+            }
+    }
+
+}
+
+function Workload(props: Props) {
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const [workload, setWorkload] = useState<any>({})
@@ -110,17 +165,17 @@ function Deployment(props: Props) {
     const [requestCPU, setRequestCPU] = useState<RequestCPU[] | null>(null)
     const [limitCPU, setLimitCPU] = useState<LimitCPU[] | null>(null)
 
-
     const paramNamespace = useParams<string>()["namespace"]
     const paramName = useParams<string>()["name"]
+    const workloadType = useParams<string>()["workloadType"]
+
     let interval: any = null
 
     useEffect(() => {
         setLoading(true)
-
         const fetchFunc = (namespace: string | undefined, name: string | undefined) => {
-            const getDeployment = async () => {
-                const { data } = await axios.get(`/api/v1/workloads/deployments/${namespace}/${name}`, { headers: { Accept: "application/json" } })
+            const getWorkload = async () => {
+                const { data } = await axios.get(`/api/v1/workloads/${workloadType}/${namespace}/${name}`, { headers: { Accept: "application/json" } })
                 return data.data
             }
 
@@ -130,13 +185,8 @@ function Deployment(props: Props) {
             const requestsC: RequestCPU[] = []
             const limitsC: LimitCPU[] = []
 
-            getDeployment().then(data => {
-                if (data.workload.status.ready !== data.workload.status.desired) {
-                    data.workload.status.message = "loading"
-                } else {
-                    data.workload.status.message = "running"
-                }
-
+            getWorkload().then(data => {
+                data.workload.status.message = getPodStatusBasedOnWorkloadType(workloadType, data.workload)
                 const pods = data.pods.map((p: any) => {
                     p.workload_info.containers = p.workload_info.containers.map((c: any) => {
 
@@ -147,7 +197,7 @@ function Deployment(props: Props) {
                                 value: c.request_memory
                             }
                         })
-    
+
                         const containerLimitsMem: LimitMemory[] = p.workload_info.containers.map((c: any) => {
                             return {
                                 containerName: c.container_name,
@@ -163,7 +213,7 @@ function Deployment(props: Props) {
                                 value: c.request_cpu
                             }
                         })
-    
+
                         const containerLimitsCPU: LimitCPU[] = p.workload_info.containers.map((c: any) => {
                             return {
                                 containerName: c.container_name,
@@ -186,124 +236,129 @@ function Deployment(props: Props) {
                         return { ...c, metrics: [] }
                     })
 
+                    return p
+                })
 
-
-                return p
+                setRequestMemory(requestsM)
+                setLimitMemory(limitsM)
+                setRequestCPU(requestsC)
+                setLimitCPU(limitsC)
+                setWorkload(data.workload)
+                setPods(pods)
+                setMetrics(data.metrics)
+            }).catch((error) => {
+                if (axios.isAxiosError(error)) {
+                    console.error("failed to retrieve deployment information", error.message)
+                    setErrorMessage("failed to retrieve deployment information")
+                } else {
+                    console.error("a unknown error occurred", error)
+                    setErrorMessage("a unknown error occurred")
+                }
+            }).finally(() => {
+                setLoading(false)
             })
+        }
 
-            setRequestMemory(requestsM)
-            setLimitMemory(limitsM)
-            setRequestCPU(requestsC)
-            setLimitCPU(limitsC)
-            setWorkload(data.workload)
-            setPods(pods)
-            setMetrics(data.metrics)
-        }).catch((error) => {
-            if (axios.isAxiosError(error)) {
-                console.error("failed to retrieve deployment information", error.message)
-                setErrorMessage("failed to retrieve deployment information")
-            } else {
-                console.error("a unknown error occurred", error)
-                setErrorMessage("a unknown error occurred")
+        if (checkWorkloadType(workloadType)) {
+            setLoading(true)
+            // fetching data initially
+            fetchFunc(paramNamespace, paramName)
+
+            // check if already a interval is configured
+            if (interval) {
+                clearInterval(interval)
             }
-        }).finally(() => {
-            setLoading(false)
-        })
-}
-setLoading(true)
-// fetching data initially
-fetchFunc(paramNamespace, paramName)
+            // configure new interval
+            interval = setInterval(() => {
+                fetchFunc(paramNamespace, paramName)
+            }, props.refreshIntervalMS)
 
-// check if already a interval is configured
-if (interval) {
-    clearInterval(interval)
-}
-// configure new interval
-interval = setInterval(() => {
-    fetchFunc(paramNamespace, paramName)
-}, props.refreshIntervalMS)
-
-return () => {
-    clearInterval(interval)
-}
+            return () => {
+                clearInterval(interval)
+            }
+        }
 
     }, [props.refreshIntervalMS, paramNamespace, paramName]);
 
 
-return <React.Fragment>
-    <PageHead title={`Deployment ${paramName}`} />
-    <Box>
-        {loading ? <CircularProgress color="primary" /> : <div>
-            <Box mb={1}>
-                <b>Status: </b> {workload.status.message === "loading" ? <Chip variant="outlined" label={workload.status.message} size="small" color="warning" /> : <Chip variant="outlined" label={workload.status.message} size="small" color="success" />}
-            </Box>
-            <Box mb={1}>
-                <b>Labels: </b> {Object.keys(workload.workload_info.labels).map((key) => {
-                    return <Chip variant="filled" label={`${key}=${workload.workload_info.labels[key]}`} size="small" key={key} color="primary" sx={{ mr: 1 }} />
-                })}
-            </Box>
-            <Box mb={1}>
-                <b>Annotations: </b>{Object.keys(workload.workload_info.annotations).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
-                    return <Chip variant="filled" label={`${key}=${workload.workload_info.annotations[key]}`} size="small" key={key} color="secondary" sx={{ mr: 1 }} />
-                })}
-            </Box>
-            <Box mb={1}>
-                <b>Selector: </b>{Object.keys(workload.workload_info.selector).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
-                    return <Chip variant="filled" label={`${key}=${workload.workload_info.selector[key]}`} size="small" key={key} color="secondary" sx={{ mr: 1 }} />
-                })}
-            </Box>
-            <Box mb={1}>
-                <b>Ready/Desired: </b> {workload.status.desired} / {workload.status.ready}
-            </Box>
-            <Box mb={1}>
-                <b>Creation Timestamp: </b> {moment(workload.workload_info.creation_date).format("YYYY-MM-DD HH:mm")} <Chip variant="outlined" color="secondary" label={moment(workload.workload_info.creation_date).fromNow()} size="small"></Chip>
-            </Box>
-        </div>}
-    </Box>
-    <SectionHead title="Metrics" />
-    <Box>
-        <Grid container spacing={1}>
-            <Grid item sm={6}>
-                <Card>
-                    <CardContent sx={{ p: 3 }}>
-                        <MemChart data={metrics} limitMemory={limitMemory} requestMemory={requestMemory} />
-                    </CardContent>
-                </Card>
+    if (!checkWorkloadType(workloadType)) {
+        return <Navigate to="/ui/" />
+    }
+
+    return <React.Fragment>
+        <PageHead title={`${getHeadlineByWorkloadType(workloadType)} ${paramName}`} />
+        <Box>
+            {loading ? <CircularProgress color="primary" /> : <div>
+                <Box mb={1}>
+                    <b>Status: </b> {workload.status.message === "loading" ? <Chip variant="outlined" label={workload.status.message} size="small" color="warning" /> : <Chip variant="outlined" label={workload.status.message} size="small" color="success" />}
+                </Box>
+                <Box mb={1}>
+                    <b>Labels: </b> {Object.keys(workload.workload_info.labels).map((key) => {
+                        return <Chip variant="filled" label={`${key}=${workload.workload_info.labels[key]}`} size="small" key={key} color="primary" sx={{ mr: 1 }} />
+                    })}
+                </Box>
+                <Box mb={1}>
+                    <b>Annotations: </b>{Object.keys(workload.workload_info.annotations).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
+                        return <Chip variant="filled" label={`${key}=${workload.workload_info.annotations[key]}`} size="small" key={key} color="secondary" sx={{ mr: 1 }} />
+                    })}
+                </Box>
+                <Box mb={1}>
+                    <b>Selector: </b>{Object.keys(workload.workload_info.selector).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
+                        return <Chip variant="filled" label={`${key}=${workload.workload_info.selector[key]}`} size="small" key={key} color="secondary" sx={{ mr: 1 }} />
+                    })}
+                </Box>
+                <Box mb={1}>
+                    ${renderStatusByWorkloadType(workloadType, workload)}
+                </Box>
+                <Box mb={1}>
+                    <b>Creation Timestamp: </b> {moment(workload.workload_info.creation_date).format("YYYY-MM-DD HH:mm")} <Chip variant="outlined" color="secondary" label={moment(workload.workload_info.creation_date).fromNow()} size="small"></Chip>
+                </Box>
+            </div>}
+        </Box>
+        <SectionHead title="Metrics" />
+        <Box>
+            <Grid container spacing={1}>
+                <Grid item sm={6}>
+                    <Card>
+                        <CardContent sx={{ p: 3 }}>
+                            <MemChart data={metrics} limitMemory={limitMemory} requestMemory={requestMemory} />
+                        </CardContent>
+                    </Card>
+                </Grid>
+                <Grid item sm={6}>
+                    <Card>
+                        <CardContent sx={{ p: 3 }}>
+                            <CpuChart data={metrics} limitCPU={limitCPU} requestCPU={requestCPU} />
+                        </CardContent>
+                    </Card>
+                </Grid>
             </Grid>
-            <Grid item sm={6}>
-            <Card>
-                    <CardContent sx={{ p: 3 }}>
-                        <CpuChart data={metrics} limitCPU={limitCPU} requestCPU={requestCPU} />
-                    </CardContent>
-                </Card>
-            </Grid>
-        </Grid>
-    </Box>
-    <SectionHead title="Pods &amp; Containers" />
-    <TableContainer component={Paper}>
-        <Table aria-label="collapsible table">
-            <TableHead>
-                <TableRow>
-                    <TableCell />
-                    <TableCell>Podname</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Containers</TableCell>
-                    <TableCell>Labels</TableCell>
-                    <TableCell>Restarts</TableCell>
-                    <TableCell>Age</TableCell>
-                </TableRow>
-            </TableHead>
-            <TableBody>
-                {pods.map((pod: any) => (
-                    <Row key={pod.workload_info.workload_name} row={pod} />
-                ))}
-            </TableBody>
-        </Table>
-    </TableContainer>
-    <Snackbar anchorOrigin={{ horizontal: "left", vertical: "bottom" }} open={errorMessage !== ""} autoHideDuration={6000}>
-        <Alert severity="error">{errorMessage}</Alert>
-    </Snackbar>
-</React.Fragment>
+        </Box>
+        <SectionHead title="Pods &amp; Containers" />
+        <TableContainer component={Paper}>
+            <Table aria-label="collapsible table">
+                <TableHead>
+                    <TableRow>
+                        <TableCell />
+                        <TableCell>Podname</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Containers</TableCell>
+                        <TableCell>Labels</TableCell>
+                        <TableCell>Restarts</TableCell>
+                        <TableCell>Age</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {pods.map((pod: any) => (
+                        <Row key={pod.workload_info.workload_name} row={pod} />
+                    ))}
+                </TableBody>
+            </Table>
+        </TableContainer>
+        <Snackbar anchorOrigin={{ horizontal: "left", vertical: "bottom" }} open={errorMessage !== ""} autoHideDuration={6000}>
+            <Alert severity="error">{errorMessage}</Alert>
+        </Snackbar>
+    </React.Fragment>
 }
 
-export default Deployment
+export default Workload

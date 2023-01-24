@@ -162,9 +162,20 @@ func (a *API) GetDeployments(c *gin.Context) {
 	a.Response(c, http.StatusOK, SUCCESS, workloads)
 }
 
-func (a *API) GetDeployment(c *gin.Context) {
+func (a *API) GetWorkload(c *gin.Context) {
 	f := make(map[string]string)
-	f["workload_type"] = models.WORKLOAD_TYPE_DEPLOYMENT
+
+	switch c.Param("workloadType") {
+	case "deployments":
+		f["workload_type"] = models.WORKLOAD_TYPE_DEPLOYMENT
+	case "statefulsets":
+		f["workload_type"] = models.WORKLOAD_TYPE_STATEFULSET
+	case "daemonsets":
+		f["workload_type"] = models.WORKLOAD_TYPE_DEAMONSET
+	default:
+		zap.L().Error("invalid workload type passed!")
+		a.Response(c, http.StatusBadRequest, BAD_REQUEST, nil)
+	}
 
 	if c.Param("namespace") != "" {
 		f["namespace"] = c.Param("namespace")
