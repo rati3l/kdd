@@ -1,0 +1,4 @@
+local: true
+kubeconfig_path: ./some-arbitrary-path/.kubeconfig
+http:
+  port: 3333

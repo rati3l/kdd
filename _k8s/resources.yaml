@@ -1,0 +1,43 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kdd
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: kdd
+  name: kdd
+  namespace: kdd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kdd
+  template:
+    metadata:
+      labels:
+        app: kdd
+    spec:
+      containers:
+      - image: kdd:latest
+        name: kdd
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kdd
+  labels:
+    app: kdd
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3333
+    protocol: TCP
+    name: http
+  selector:
+    app: kdd
+...
