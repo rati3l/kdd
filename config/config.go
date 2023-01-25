@@ -1,30 +1,46 @@
-package main
+package config
 
 import (
 	"flag"
+	"sync"
 
 	"go.uber.org/zap"
 )
 
 type Configuration struct {
-	local    bool
-	yamlPath string
+	Local    bool
+	YamlPath string
 	http     struct {
 		port int
 	}
 }
 
-func GetConfig() (Configuration, error) {
+var configInstance *Configuration
+var lock = &sync.Mutex{}
+
+func GetConfig() (*Configuration, error) {
+	if configInstance == nil {
+		lock.Lock()
+		defer lock.Unlock()
+		if configInstance == nil {
+			configInstance, _ = PrepareConfig()
+		}
+	}
+
+	return configInstance, nil
+}
+
+func PrepareConfig() (*Configuration, error) {
 
 	Config := new(Configuration)
-	flag.BoolVar(&Config.local, "local", false, "whenever to use local auth (kubeconfig) or in-cluster authentication")
-	flag.StringVar(&Config.yamlPath, "local", "./config", "location of the config yaml file")
+	flag.BoolVar(&Config.Local, "local", false, "whenever to use local auth (kubeconfig) or in-cluster authentication")
+	flag.StringVar(&Config.YamlPath, "yaml", "./config", "location of the config yaml file")
 
 	flag.Parse()
 
-	validateYaml(Config.yamlPath)
+	validateYaml(Config.YamlPath)
 
-	return *Config, nil
+	return Config, nil
 }
 
 func validateYaml(path string) {

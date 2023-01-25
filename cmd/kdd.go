@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gitlab.com/patrick.erber/kdd/config"
 	"gitlab.com/patrick.erber/kdd/internal/adapters"
 	"gitlab.com/patrick.erber/kdd/internal/collector"
 	"gitlab.com/patrick.erber/kdd/internal/controller"
@@ -17,6 +18,7 @@ import (
 	"gitlab.com/patrick.erber/kdd/internal/router"
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	metrics "k8s.io/metrics/pkg/client/clientset/versioned"
@@ -43,13 +45,36 @@ func sigHandler() <-chan struct{} {
 	return stop
 }
 
-func buildClientSet() *kubernetes.Clientset {
-	kubeconfig := filepath.Join(homedir.HomeDir(), ".kube", "config")
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+func getClientConfig() (*rest.Config, string) {
+	// TODO viper
+	kddConfig, err := config.GetConfig()
 	if err != nil {
-		zap.L().Fatal("build kubernetes flag", zap.String("kubeconfig", kubeconfig))
+		zap.L().Error("Failed to get the configuration", zap.Error(err))
 	}
 
+	zap.L().Sugar().Errorf("%v", kddConfig.Local)
+	var cfg *rest.Config
+	var kubeconfig string
+
+	if kddConfig.Local {
+		kubeconfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
+		cfg, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+		if err != nil {
+			zap.L().Fatal("build kubernetes flag", zap.String("kubeconfig", kubeconfig))
+		}
+	} else {
+		kubeconfig = "in cluster configuration"
+		cfg, err = rest.InClusterConfig()
+		if err != nil {
+			zap.L().Fatal("could not create config", zap.String("kubeconfig", kubeconfig))
+		}
+	}
+
+	return cfg, kubeconfig
+}
+
+func buildClientSet() *kubernetes.Clientset {
+	config, kubeconfig := getClientConfig()
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		zap.L().Fatal("could not create kubernetes client set", zap.String("kubeconfig", kubeconfig))
@@ -59,15 +84,10 @@ func buildClientSet() *kubernetes.Clientset {
 }
 
 func buildMetricsClientSet() *metrics.Clientset {
-	kubeconfig := filepath.Join(homedir.HomeDir(), ".kube", "config")
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		zap.L().Fatal("build kubernetes flag", zap.String("kubeconfig", kubeconfig))
-	}
-
+	config, kubeconfig := getClientConfig()
 	clientSet, err := metrics.NewForConfig(config)
 	if err != nil {
-		zap.L().Fatal("could not create kubernetes client set", zap.String("kubeconfig", kubeconfig))
+		zap.L().Fatal("could not create kubernetes metrics client set", zap.String("kubeconfig", kubeconfig))
 	}
 
 	return clientSet
@@ -79,6 +99,14 @@ func main() {
 
 	undo := zap.ReplaceGlobals(logger)
 	defer undo()
+
+	// TODO handle config here
+	// get config
+	// kddConfig, err := config.GetConfig()
+	// if err != nil {
+	// 	zap.L().Error("Failed to get the configuration", zap.Error(err))
+	// }
+	// zap.L().Error(kddConfig.YamlPath)
 
 	// Initialize Database
 	ds, err := persistence.NewSQLiteDataStore("data.sqlite")
