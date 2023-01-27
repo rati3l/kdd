@@ -187,12 +187,12 @@ function Namespace(props: Props) {
                     <b>Status: </b> <Chip variant="outlined" label={namespaceData.status} size="small" color="success" />
                 </Box>
                 <Box mb={1}>
-                    <b>Labels: </b> {Object.keys(namespaceData.labels).map((key) => {
+                    <b>Labels: </b> {Object.keys(namespaceData.labels || {}).map((key) => {
                         return <Chip variant="filled" label={`${key}=${namespaceData.labels[key]}`} size="small" key={key} color="primary" sx={{ mr: 1 }} />
                     })}
                 </Box>
                 <Box mb={1}>
-                    <b>Annotations: </b>{Object.keys(namespaceData.annotations).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
+                    <b>Annotations: </b>{Object.keys(namespaceData.annotations || {}).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
                         return <Chip variant="filled" label={`${key}=${namespaceData.annotations[key]}`} size="small" key={key} color="secondary" sx={{ mr: 1 }} />
                     })}
                 </Box>

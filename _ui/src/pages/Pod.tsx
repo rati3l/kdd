@@ -65,30 +65,32 @@ function Row(props: { row: any }) {
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {row.workload_info.containers.map((containerRow: any) => (
-                                        <TableRow key={containerRow.container_name}>
-                                            <TableCell component="th" scope="row">
-                                                {containerRow.container_name}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Chip variant="filled" label={`${containerRow.image}`} size="small" color="secondary" sx={{ mr: 1 }} />
-                                                <Chip variant="filled" label={`${containerRow.image_version}`} size="small" color="warning" sx={{ mr: 1 }} />
-                                                {containerRow.init ? <Chip variant="filled" label="init" size="small" color="error" /> : null}
-                                            </TableCell>
-                                            <TableCell>
-                                                {filesize(containerRow.request_memory).human()} / {filesize(containerRow.limit_memory).human()}
-                                            </TableCell>
-                                            <TableCell>
-                                                {containerRow.request_cpu}m / {containerRow.limit_cpu}m
-                                            </TableCell>
-                                            <TableCell>
-                                                {filesize(containerRow.metrics.memory_usage).human()}
-                                            </TableCell>
-                                            <TableCell>
-                                                {containerRow.metrics.cpu_usage}m
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {row.workload_info.containers.map((containerRow: any) => {
+                                        return (
+                                            <TableRow key={containerRow.container_name}>
+                                                <TableCell component="th" scope="row">
+                                                    {containerRow.container_name}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Chip variant="filled" label={`${containerRow.image}`} size="small" color="secondary" sx={{ mr: 1 }} />
+                                                    <Chip variant="filled" label={`${containerRow.image_version}`} size="small" color="warning" sx={{ mr: 1 }} />
+                                                    {containerRow.init ? <Chip variant="filled" label="init" size="small" color="error" /> : null}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {filesize(containerRow.request_memory).human()} / {filesize(containerRow.limit_memory).human()}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {containerRow.request_cpu}m / {containerRow.limit_cpu}m
+                                                </TableCell>
+                                                <TableCell>
+                                                    {containerRow.metrics ? filesize(containerRow.metrics.memory_usage).human() : ""}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {containerRow.metrics ? `${containerRow.metrics.cpu_usage}m`: ""}
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
                                 </TableBody>
                             </Table>
                         </Box>
@@ -200,7 +202,6 @@ function Pod(props: Props) {
 
         setLoading(true)
         // fetching data initially
-        console.log("calling set func")
         fetchFunc(paramNamespace, paramName)
 
         // check if already a interval is configured
@@ -237,12 +238,12 @@ function Pod(props: Props) {
                     <b>Status: </b> {workload.status !== "Running" ? <Chip variant="outlined" label={workload.status} size="small" color="warning" /> : <Chip variant="outlined" label={workload.status} size="small" color="success" />}
                 </Box>
                 <Box mb={1}>
-                    <b>Labels: </b> {Object.keys(workload.workload_info.labels).map((key) => {
+                    <b>Labels: </b> {Object.keys(workload.workload_info.labels || {}).map((key) => {
                         return <Chip variant="filled" label={`${key}=${workload.workload_info.labels[key]}`} size="small" key={key} color="primary" sx={{ mr: 1 }} />
                     })}
                 </Box>
                 <Box mb={1}>
-                    <b>Annotations: </b>{Object.keys(workload.workload_info.annotations).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
+                    <b>Annotations: </b>{Object.keys(workload.workload_info.annotations || {}).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
                         return <Chip variant="filled" label={`${key}=${workload.workload_info.annotations[key]}`} size="small" key={key} color="secondary" sx={{ mr: 1 }} />
                     })}
                 </Box>

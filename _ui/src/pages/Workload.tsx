@@ -82,10 +82,10 @@ function Row(props: { row: any }) {
                                                 {containerRow.request_cpu}m / {containerRow.limit_cpu}m
                                             </TableCell>
                                             <TableCell>
-                                                {filesize(containerRow.metrics.memory_usage).human()}
+                                                {containerRow.metrics ? filesize(containerRow.metrics.memory_usage).human() : ""}
                                             </TableCell>
                                             <TableCell>
-                                                {containerRow.metrics.cpu_usage}m
+                                                {containerRow.metrics ? `${containerRow.metrics.cpu_usage}m` : ""}
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -228,14 +228,14 @@ function Workload(props: Props) {
                         requestsC.push(...containerRequestsCPU)
                         limitsC.push(...containerLimitsCPU)
 
-                        const containerMetrics:any = []
+                        const containerMetrics: any = []
 
                         for (let i = 0; i < data.metrics.length; i++) {
                             if (p.workload_info.workload_name === data.metrics[i].podname && c.container_name === data.metrics[i].container_name) {
                                 containerMetrics.push(data.metrics[i])
                             }
                         }
-                        return { ...c, metrics: containerMetrics[containerMetrics.length -1] }
+                        return { ...c, metrics: containerMetrics[containerMetrics.length - 1] }
                     })
 
                     return p
@@ -295,12 +295,12 @@ function Workload(props: Props) {
                     <b>Status: </b> {workload.status.message === "loading" ? <Chip variant="outlined" label={workload.status.message} size="small" color="warning" /> : <Chip variant="outlined" label={workload.status.message} size="small" color="success" />}
                 </Box>
                 <Box mb={1}>
-                    <b>Labels: </b> {Object.keys(workload.workload_info.labels).map((key) => {
+                    <b>Labels: </b> {Object.keys(workload.workload_info.labels || {}).map((key) => {
                         return <Chip variant="filled" label={`${key}=${workload.workload_info.labels[key]}`} size="small" key={key} color="primary" sx={{ mr: 1 }} />
                     })}
                 </Box>
                 <Box mb={1}>
-                    <b>Annotations: </b>{Object.keys(workload.workload_info.annotations).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
+                    <b>Annotations: </b>{Object.keys(workload.workload_info.annotations || {}).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
                         return <Chip variant="filled" label={`${key}=${workload.workload_info.annotations[key]}`} size="small" key={key} color="secondary" sx={{ mr: 1 }} />
                     })}
                 </Box>

@@ -122,7 +122,7 @@ function StatefulSetDataGrid(props: Props) {
             workload_name: row.workload_info.workload_name,
             namespace: row.workload_info.namespace,
             creation_date: row.workload_info.creation_date,
-            annotations: row.workload_info.annotations,
+            annotations: row.workload_info.annotations || {},
             labels: row.workload_info.labels,
             selector: row.workload_info.selector,
             status: (row.status.ready !== row.status.replicas) ? "loading" : "running",
