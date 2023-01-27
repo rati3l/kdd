@@ -22,8 +22,11 @@ spec:
         app: kdd
     spec:
       containers:
-      - image: kdd:latest
+      - image: ratiel/kdd:latest
         name: kdd
+        command:
+         - /app/kdd
+         - local=true
 ---
 apiVersion: v1
 kind: Service
