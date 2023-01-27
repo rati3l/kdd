@@ -162,6 +162,11 @@ function PageContainer(props: Props) {
                             <ListItemText primary="Daemonsets" />
                         </ListItemButton>
                     </ListItem>
+                    <ListItem disablePadding>
+                        <ListItemButton href="/ui/workloads/pods" >
+                            <ListItemText primary="Pods" />
+                        </ListItemButton>
+                    </ListItem>
                 </List>
             </Drawer>
             <Main open={open}>

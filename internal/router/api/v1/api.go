@@ -162,6 +162,80 @@ func (a *API) GetDeployments(c *gin.Context) {
 	a.Response(c, http.StatusOK, SUCCESS, workloads)
 }
 
+func (a *API) GetPods(c *gin.Context) {
+	f := make(map[string]string)
+	f["workload_type"] = models.WORKLOAD_TYPE_POD
+
+	if c.Query("namespace") != "" {
+		f["namespace"] = c.Query("namespace")
+	}
+
+	if c.Query("name") != "" {
+		f["name"] = c.Query("name")
+	}
+
+	collection, err := a.ds.GetWorkloadsBy(f)
+	if err != nil {
+		a.Response(c, http.StatusInternalServerError, ERROR, nil)
+		return
+	}
+
+	// sorting result
+	result := collection.ToList()
+	workloads := make([]models.Workload, len(result))
+	for i := 0; i < len(result); i++ {
+		workloads[i] = result[i].(models.Workload)
+	}
+
+	sort.Sort(models.ByWorkloadName(workloads))
+
+	a.Response(c, http.StatusOK, SUCCESS, workloads)
+}
+
+func (a *API) GetPod(c *gin.Context) {
+	f := make(map[string]string)
+
+	f["workload_type"] = models.WORKLOAD_TYPE_POD
+
+	if c.Param("namespace") != "" {
+		f["namespace"] = c.Param("namespace")
+	} else {
+		a.Response(c, http.StatusBadRequest, BAD_REQUEST, nil)
+		return
+	}
+
+	if c.Param("name") != "" {
+		f["workload_name"] = c.Param("name")
+	} else {
+		a.Response(c, http.StatusBadRequest, BAD_REQUEST, nil)
+		return
+	}
+
+	workload, err := a.ds.GetWorkloadBy(f)
+	if err != nil {
+		a.Response(c, http.StatusInternalServerError, ERROR, nil)
+		return
+	}
+
+	rate := time.Minute * 5
+	if c.Query("rate") != "" {
+		rate, err = time.ParseDuration(c.Query("rate"))
+		if err != nil {
+			zap.L().Error("Could not parse value for rate", zap.String("query_rate", c.Query("rate")))
+			a.Response(c, http.StatusBadRequest, BAD_REQUEST, nil)
+			return
+		}
+	}
+
+	a.Response(c, http.StatusOK, SUCCESS, struct {
+		Workload models.Workload             `json:"workload"`
+		Metrics  []models.PodContainerMetric `json:"metrics"`
+	}{
+		Workload: workload,
+		Metrics:  a.getPodMetrics(c.Param("namespace"), []models.Workload{workload}, rate),
+	})
+}
+
 func (a *API) GetWorkload(c *gin.Context) {
 	f := make(map[string]string)
 
@@ -175,6 +249,7 @@ func (a *API) GetWorkload(c *gin.Context) {
 	default:
 		zap.L().Error("invalid workload type passed!")
 		a.Response(c, http.StatusBadRequest, BAD_REQUEST, nil)
+		return
 	}
 
 	if c.Param("namespace") != "" {
@@ -218,6 +293,7 @@ func (a *API) GetWorkload(c *gin.Context) {
 		if err != nil {
 			zap.L().Error("Could not parse value for rate", zap.String("query_rate", c.Query("rate")))
 			a.Response(c, http.StatusBadRequest, BAD_REQUEST, nil)
+			return
 		}
 	}
 
@@ -310,6 +386,7 @@ func (a *API) GetContainerMetrics(c *gin.Context) {
 		if err != nil {
 			zap.L().Error("Could not parse value for rate", zap.String("query_rate", c.Query("rate")))
 			a.Response(c, http.StatusBadRequest, BAD_REQUEST, nil)
+			return
 		}
 	}
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react"
 import PageHead from "../components/PageHead"
 import { Box } from "@mui/system";
 import { Alert, Card, CardContent, Chip, CircularProgress, Collapse, Grid, IconButton, Paper, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
-import { Navigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import axios from "axios";
@@ -99,66 +99,10 @@ function Row(props: { row: any }) {
     );
 }
 
-const checkWorkloadType = (workloadType: string | undefined) => {
-    switch (workloadType) {
-        case "deployments":
-        case "statefulsets":
-        case "daemonsets":
-            return true
-        default:
-            return false
-    }
-}
-
-const getHeadlineByWorkloadType = (workloadType: string | undefined) => {
-    switch (workloadType) {
-        case "deployments":
-            return "Deployment"
-        case "statefulsets":
-            return "Statefulset"
-        case "daemonsets":
-            return "Daemonset"
-        default:
-            return ""
-    }
-}
-
-const renderStatusByWorkloadType = (workloadType: string | undefined, workload: any) => {
-    switch (workloadType) {
-        case "daemonsets":
-        case "deployments":
-            return (<React.Fragment><b>Ready/Desired: </b> {workload.status.desired} / {workload.status.ready}</React.Fragment>)
-        case "statefulsets":
-            return (<React.Fragment><b>Ready/Replicas: </b> {workload.status.ready} / {workload.status.replicas}</React.Fragment>)
-        default:
-            return <React.Fragment />
-    }
-}
-
-const getPodStatusBasedOnWorkloadType = (workloadType: string | undefined, workload: any) => {
-    switch (workloadType) {
-        case "daemonsets":
-        case "deployments":
-            if (workload.status.ready !== workload.status.desired) {
-                return "loading"
-            } else {
-                return "running"
-            }
-        case "statefulsets":
-            if (workload.status.ready !== workload.status.replicas) {
-                return "loading"
-            } else {
-                return "running"
-            }
-    }
-
-}
-
-function Workload(props: Props) {
+function Pod(props: Props) {
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const [workload, setWorkload] = useState<any>({})
-    const [pods, setPods] = useState<any[]>([])
     const [metrics, setMetrics] = useState<any[]>([])
     const [requestMemory, setRequestMemory] = useState<RequestMemory[] | null>(null)
     const [limitMemory, setLimitMemory] = useState<LimitMemory[] | null>(null)
@@ -167,7 +111,6 @@ function Workload(props: Props) {
 
     const paramNamespace = useParams<string>()["namespace"]
     const paramName = useParams<string>()["name"]
-    const workloadType = useParams<string>()["workloadType"]
 
     let interval: any = null
 
@@ -175,70 +118,64 @@ function Workload(props: Props) {
         setLoading(true)
         const fetchFunc = (namespace: string | undefined, name: string | undefined) => {
             const getWorkload = async () => {
-                const { data } = await axios.get(`/api/v1/workloads/${workloadType}/${namespace}/${name}`, { headers: { Accept: "application/json" } })
+                const { data } = await axios.get(`/api/v1/workloads/pods/${namespace}/${name}`, { headers: { Accept: "application/json" } })
                 return data.data
             }
 
-            const requestsM: RequestMemory[] = []
-            const limitsM: LimitMemory[] = []
-
-            const requestsC: RequestCPU[] = []
-            const limitsC: LimitCPU[] = []
-
             getWorkload().then(data => {
-                data.workload.status.message = getPodStatusBasedOnWorkloadType(workloadType, data.workload)
-                const pods = data.pods.map((p: any) => {
-                    p.workload_info.containers = p.workload_info.containers.map((c: any) => {
+                const requestsM: RequestMemory[] = []
+                const limitsM: LimitMemory[] = []
 
-                        const containerRequestsMem: RequestMemory[] = p.workload_info.containers.map((c: any) => {
-                            return {
-                                containerName: c.container_name,
-                                podname: p.workload_info.workload_name,
-                                value: c.request_memory
-                            }
-                        })
+                const requestsC: RequestCPU[] = []
+                const limitsC: LimitCPU[] = []
 
-                        const containerLimitsMem: LimitMemory[] = p.workload_info.containers.map((c: any) => {
-                            return {
-                                containerName: c.container_name,
-                                podname: p.workload_info.workload_name,
-                                value: c.limit_memory
-                            }
-                        })
+                const containerRequestsMem: RequestMemory[] = data.workload.workload_info.containers.map((c: any) => {
+                    return {
+                        containerName: c.container_name,
+                        podname: data.workload.workload_info.workload_name,
+                        value: c.request_memory
+                    }
+                })
 
-                        const containerRequestsCPU: RequestCPU[] = p.workload_info.containers.map((c: any) => {
-                            return {
-                                containerName: c.container_name,
-                                podname: p.workload_info.workload_name,
-                                value: c.request_cpu
-                            }
-                        })
+                const containerLimitsMem: LimitMemory[] = data.workload.workload_info.containers.map((c: any) => {
+                    return {
+                        containerName: c.container_name,
+                        podname: data.workload.workload_info.workload_name,
+                        value: c.limit_memory
+                    }
+                })
 
-                        const containerLimitsCPU: LimitCPU[] = p.workload_info.containers.map((c: any) => {
-                            return {
-                                containerName: c.container_name,
-                                podname: p.workload_info.workload_name,
-                                value: c.limit_cpu
-                            }
-                        })
+                const containerRequestsCPU: RequestCPU[] = data.workload.workload_info.containers.map((c: any) => {
+                    return {
+                        containerName: c.container_name,
+                        podname: data.workload.workload_info.workload_name,
+                        value: c.request_cpu
+                    }
+                })
 
-                        requestsM.push(...containerRequestsMem)
-                        limitsM.push(...containerLimitsMem)
+                const containerLimitsCPU: LimitCPU[] = data.workload.workload_info.containers.map((c: any) => {
+                    return {
+                        containerName: c.container_name,
+                        podname: data.workload.workload_info.workload_name,
+                        value: c.limit_cpu
+                    }
+                })
 
-                        requestsC.push(...containerRequestsCPU)
-                        limitsC.push(...containerLimitsCPU)
+                requestsM.push(...containerRequestsMem)
+                limitsM.push(...containerLimitsMem)
 
-                        const containerMetrics:any = []
+                requestsC.push(...containerRequestsCPU)
+                limitsC.push(...containerLimitsCPU)
 
-                        for (let i = 0; i < data.metrics.length; i++) {
-                            if (p.workload_info.workload_name === data.metrics[i].podname && c.container_name === data.metrics[i].container_name) {
-                                containerMetrics.push(data.metrics[i])
-                            }
+
+                data.workload.workload_info.containers = data.workload.workload_info.containers.map((c: any) => {
+                    const containerMetrics: any = []
+                    for (let i = 0; i < data.metrics.length; i++) {
+                        if (data.workload.workload_info.workload_name === data.metrics[i].podname && c.container_name === data.metrics[i].container_name) {
+                            containerMetrics.push(data.metrics[i])
                         }
-                        return { ...c, metrics: containerMetrics[containerMetrics.length -1] }
-                    })
-
-                    return p
+                    }
+                    return { ...c, metrics: containerMetrics[containerMetrics.length - 1] }
                 })
 
                 setRequestMemory(requestsM)
@@ -246,11 +183,11 @@ function Workload(props: Props) {
                 setRequestCPU(requestsC)
                 setLimitCPU(limitsC)
                 setWorkload(data.workload)
-                setPods(pods)
                 setMetrics(data.metrics)
+
             }).catch((error) => {
                 if (axios.isAxiosError(error)) {
-                    console.error("failed to retrieve deployment information", error.message)
+                    console.error("failed to retrieve pod information", error.message)
                     setErrorMessage("failed to retrieve deployment information")
                 } else {
                     console.error("a unknown error occurred", error)
@@ -261,38 +198,43 @@ function Workload(props: Props) {
             })
         }
 
-        if (checkWorkloadType(workloadType)) {
-            setLoading(true)
-            // fetching data initially
+        setLoading(true)
+        // fetching data initially
+        console.log("calling set func")
+        fetchFunc(paramNamespace, paramName)
+
+        // check if already a interval is configured
+        if (interval) {
+            clearInterval(interval)
+        }
+        // configure new interval
+        interval = setInterval(() => {
             fetchFunc(paramNamespace, paramName)
+        }, props.refreshIntervalMS)
 
-            // check if already a interval is configured
-            if (interval) {
-                clearInterval(interval)
-            }
-            // configure new interval
-            interval = setInterval(() => {
-                fetchFunc(paramNamespace, paramName)
-            }, props.refreshIntervalMS)
-
-            return () => {
-                clearInterval(interval)
-            }
+        return () => {
+            clearInterval(interval)
         }
 
     }, [props.refreshIntervalMS, paramNamespace, paramName]);
 
-
-    if (!checkWorkloadType(workloadType)) {
-        return <Navigate to="/ui/" />
+    if (loading) {
+        return (
+            <React.Fragment>
+                <PageHead title={`Pod ${paramName}`} />
+                <Box>
+                    <CircularProgress color="primary" /> :
+                </Box>
+            </React.Fragment>
+        )
     }
 
     return <React.Fragment>
-        <PageHead title={`${getHeadlineByWorkloadType(workloadType)} ${paramName}`} />
+        <PageHead title={`Pod ${paramName}`} />
         <Box>
-            {loading ? <CircularProgress color="primary" /> : <div>
+            <div>
                 <Box mb={1}>
-                    <b>Status: </b> {workload.status.message === "loading" ? <Chip variant="outlined" label={workload.status.message} size="small" color="warning" /> : <Chip variant="outlined" label={workload.status.message} size="small" color="success" />}
+                    <b>Status: </b> {workload.status !== "Running" ? <Chip variant="outlined" label={workload.status} size="small" color="warning" /> : <Chip variant="outlined" label={workload.status} size="small" color="success" />}
                 </Box>
                 <Box mb={1}>
                     <b>Labels: </b> {Object.keys(workload.workload_info.labels).map((key) => {
@@ -305,17 +247,9 @@ function Workload(props: Props) {
                     })}
                 </Box>
                 <Box mb={1}>
-                    <b>Selector: </b>{Object.keys(workload.workload_info.selector).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
-                        return <Chip variant="filled" label={`${key}=${workload.workload_info.selector[key]}`} size="small" key={key} color="secondary" sx={{ mr: 1 }} />
-                    })}
-                </Box>
-                <Box mb={1}>
-                    {renderStatusByWorkloadType(workloadType, workload)}
-                </Box>
-                <Box mb={1}>
                     <b>Creation Timestamp: </b> {moment(workload.workload_info.creation_date).format("YYYY-MM-DD HH:mm")} <Chip variant="outlined" color="secondary" label={moment(workload.workload_info.creation_date).fromNow()} size="small"></Chip>
                 </Box>
-            </div>}
+            </div>
         </Box>
         <SectionHead title="Metrics" />
         <Box>
@@ -336,7 +270,7 @@ function Workload(props: Props) {
                 </Grid>
             </Grid>
         </Box>
-        <SectionHead title="Pods &amp; Containers" />
+        <SectionHead title="Containers" />
         <TableContainer component={Paper}>
             <Table aria-label="collapsible table">
                 <TableHead>
@@ -351,7 +285,7 @@ function Workload(props: Props) {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {pods.map((pod: any) => (
+                    {[workload].map((pod: any) => (
                         <Row key={pod.workload_info.workload_name} row={pod} />
                     ))}
                 </TableBody>
@@ -363,4 +297,4 @@ function Workload(props: Props) {
     </React.Fragment>
 }
 
-export default Workload
+export default Pod

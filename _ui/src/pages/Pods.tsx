@@ -3,13 +3,13 @@ import PageHead from "../components/PageHead"
 import axios from "axios";
 import { Box } from "@mui/system";
 import { Alert, CircularProgress, Snackbar } from "@mui/material";
-import DeploymentDataGrid from "../components/DeploymentDataGrid";
+import PodsDataGrid from "../components/PodsDataGrid";
 
 type Props = {
     refreshIntervalMS: number;
 }
 
-function Deployments(props: Props) {
+function Pods(props: Props) {
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const [data, setData] = useState([])
@@ -19,17 +19,17 @@ function Deployments(props: Props) {
         setLoading(true)
 
         const fetchFunc = () => {
-            const getDeployments = async () => {
-                const { data } = await axios.get(`/api/v1/workloads/deployments`, { headers: { Accept: "application/json" } })
+            const getPods = async () => {
+                const { data } = await axios.get(`/api/v1/workloads/pods`, { headers: { Accept: "application/json" } })
                 return data.data
             }
 
-            getDeployments().then(data => {
+            getPods().then(data => {
                 setData(data)
             }).catch((error) => {
                 if (axios.isAxiosError(error)) {
-                    console.error("failed to retrieve workload deployment information", error.message)
-                    setErrorMessage("failed to retrieve workload deployment information")
+                    console.error("failed to retrieve workload pods information", error.message)
+                    setErrorMessage("failed to retrieve workload pods information")
                 } else {
                     console.error("a unknown error occurred", error)
                     setErrorMessage("a unknown error occurred")
@@ -38,6 +38,7 @@ function Deployments(props: Props) {
                 setLoading(false)
             })
         }
+
         setLoading(true)
         // fetching data initially
         fetchFunc()
@@ -59,9 +60,9 @@ function Deployments(props: Props) {
 
 
     return <React.Fragment>
-        <PageHead title={"Workloads - Deployments"} />
+        <PageHead title={"Workloads - Pods"} />
         <Box>
-            {loading ? <CircularProgress color="primary" /> : <DeploymentDataGrid rows={data} height="800px" />}
+            {loading ? <CircularProgress color="primary" /> : <PodsDataGrid rows={data} height="800px" />}
         </Box>
         <Snackbar anchorOrigin={{ horizontal: "left", vertical: "bottom" }} open={errorMessage !== ""} autoHideDuration={6000}>
             <Alert severity="error">{errorMessage}</Alert>
@@ -69,4 +70,4 @@ function Deployments(props: Props) {
     </React.Fragment>
 }
 
-export default Deployments
+export default Pods
