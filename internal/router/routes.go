@@ -13,10 +13,11 @@ import (
 func InitRouter(ds *persistence.DataStore, ka *adapters.KubeAPIAdapter) *gin.Engine {
 	r := gin.New()
 
-	r.StaticFS("/static", http.Dir("../_ui/build/static"))
-	r.LoadHTMLFiles("../_ui/build/index.html")
+	// TODO fix relative path so it works in Docker and locally
+	r.StaticFS("/static", http.Dir("/app/_ui/build/static"))
+	r.LoadHTMLFiles("/app/_ui/build/index.html")
 	for _, page := range []string{"favicon.ico", "manifest.json", "robots.txt"} {
-		r.StaticFile(fmt.Sprintf("/%s", page), fmt.Sprintf("../_ui/build/%s", page))
+		r.StaticFile(fmt.Sprintf("/%s", page), fmt.Sprintf("/app/_ui/build/%s", page))
 	}
 
 	r.GET("/ui/*page", func(c *gin.Context) {

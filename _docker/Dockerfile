@@ -20,10 +20,10 @@ FROM alpine:3.17.1
 RUN addgroup -S kdd && adduser -S kdd -G kdd
 USER kdd
 
-WORKDIR /app
 # RUN apk add gcc musl
+WORKDIR /app
 COPY --from=go_builder /kdd  ./kdd
-COPY --from=node_builder /build/build ./_ui
+COPY --from=node_builder /build/build ./_ui/build
 
 EXPOSE 3333
 

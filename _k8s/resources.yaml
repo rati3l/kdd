@@ -22,11 +22,12 @@ spec:
         app: kdd
     spec:
       containers:
-      - image: ratiel/kdd:latest
+      - image: ratiel/kdd:3
         name: kdd
+        imagePullPolicy: Always
         command:
          - /app/kdd
-         - local=true
+         - local=false
 ---
 apiVersion: v1
 kind: Service
@@ -34,6 +35,7 @@ metadata:
   name: kdd
   labels:
     app: kdd
+  namespace: kdd
 spec:
   type: ClusterIP
   ports:
@@ -43,4 +45,26 @@ spec:
     name: http
   selector:
     app: kdd
-...
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kdd-clusterrole
+rules:
+- apiGroups: ["*"]
+# TODO limit permissions
+  resources: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kdd-clusterrolebinding
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: kdd
+roleRef: 
+  kind: ClusterRole
+  name: kdd-clusterrole
+  apiGroup: rbac.authorization.k8s.io
