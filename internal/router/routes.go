@@ -6,18 +6,24 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/patrick.erber/kdd/internal/adapters"
+	"gitlab.com/patrick.erber/kdd/internal/config"
 	"gitlab.com/patrick.erber/kdd/internal/persistence"
 	v1 "gitlab.com/patrick.erber/kdd/internal/router/api/v1"
+	"go.uber.org/zap"
 )
 
 func InitRouter(ds *persistence.DataStore, ka *adapters.KubeAPIAdapter) *gin.Engine {
 	r := gin.New()
 
-	// TODO fix relative path so it works in Docker and locally
-	r.StaticFS("/static", http.Dir("/app/_ui/build/static"))
-	r.LoadHTMLFiles("/app/_ui/build/index.html")
+	appConfig, err := config.GetConfig()
+	if err != nil {
+		zap.L().Error("Failed to get the configuration", zap.Error(err))
+	}
+
+	r.StaticFS("/static", http.Dir(appConfig.StaticFiles+"static"))
+	r.LoadHTMLFiles(appConfig.StaticFiles + "index.html")
 	for _, page := range []string{"favicon.ico", "manifest.json", "robots.txt"} {
-		r.StaticFile(fmt.Sprintf("/%s", page), fmt.Sprintf("/app/_ui/build/%s", page))
+		r.StaticFile(fmt.Sprintf("/%s", page), appConfig.StaticFiles+fmt.Sprintf("%s", page))
 	}
 
 	r.GET("/ui/*page", func(c *gin.Context) {

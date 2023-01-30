@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -10,9 +11,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gitlab.com/patrick.erber/kdd/config"
 	"gitlab.com/patrick.erber/kdd/internal/adapters"
 	"gitlab.com/patrick.erber/kdd/internal/collector"
+	"gitlab.com/patrick.erber/kdd/internal/config"
 	"gitlab.com/patrick.erber/kdd/internal/controller"
 	"gitlab.com/patrick.erber/kdd/internal/persistence"
 	"gitlab.com/patrick.erber/kdd/internal/router"
@@ -46,17 +47,15 @@ func sigHandler() <-chan struct{} {
 }
 
 func getClientConfig() (*rest.Config, string) {
-	// TODO viper
-	kddConfig, err := config.GetConfig()
+	appConfig, err := config.GetConfig()
 	if err != nil {
 		zap.L().Error("Failed to get the configuration", zap.Error(err))
 	}
 
-	zap.L().Sugar().Errorf("%v", kddConfig.Local)
 	var cfg *rest.Config
 	var kubeconfig string
 
-	if kddConfig.Local {
+	if appConfig.Local {
 		kubeconfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
 		cfg, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
@@ -100,13 +99,12 @@ func main() {
 	undo := zap.ReplaceGlobals(logger)
 	defer undo()
 
-	// TODO handle config here
-	// get config
-	// kddConfig, err := config.GetConfig()
-	// if err != nil {
-	// 	zap.L().Error("Failed to get the configuration", zap.Error(err))
-	// }
-	// zap.L().Error(kddConfig.YamlPath)
+	// handle config here
+
+	appConfig, err := config.GetConfig()
+	if err != nil {
+		zap.L().Error("Failed to get the configuration", zap.Error(err))
+	}
 
 	// Initialize Database
 	ds, err := persistence.NewSQLiteDataStore("data.sqlite")
@@ -129,7 +127,7 @@ func main() {
 	// Configure HTTP Server
 	gin.SetMode(gin.DebugMode)
 	server := http.Server{
-		Addr:           ":3333",
+		Addr:           fmt.Sprintf(":%v", appConfig.HttpPort),
 		ReadTimeout:    30 * time.Second,
 		WriteTimeout:   30 * time.Second,
 		MaxHeaderBytes: 1 << 20,
