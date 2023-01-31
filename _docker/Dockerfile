@@ -4,7 +4,7 @@ RUN apk add build-base gcc musl-dev
 WORKDIR /build
 COPY ./ ./
 RUN go mod download
-RUN  go build -o /kdd cmd/kdd.go
+RUN  go build -ldflags="-s -w" -o /kdd cmd/kdd.go
 
 
 FROM node:19.4.0-bullseye as node_builder
@@ -14,17 +14,16 @@ WORKDIR /build
 RUN npm install
 
 
-
 FROM alpine:3.17.1
-
 RUN addgroup -S kdd && adduser -S kdd -G kdd
 USER kdd
 
 # RUN apk add gcc musl
 WORKDIR /app
-COPY --from=go_builder /kdd  ./kdd
+COPY --from=go_builder /kdd  ./kdd/app/kdd
 COPY --from=node_builder /build/build ./_ui/build
 
 EXPOSE 3333
+WORKDIR /app/kdd
+CMD ["./kdd"] 
 
-CMD ["/app/kdd"] 
