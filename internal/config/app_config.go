@@ -49,7 +49,7 @@ func LoadConfig() (config *Config, err error) {
 
 	viper.SetDefault("Local", false)
 	viper.SetDefault("HttpPort", 3333)
-	viper.SetDefault("StaticFiles", "../_ui/build/")
+	viper.SetDefault("StaticFiles", "/app/_ui/build/")
 
 	err = viper.ReadInConfig()
 	if err != nil {

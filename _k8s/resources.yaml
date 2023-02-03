@@ -22,7 +22,7 @@ spec:
         app: kdd
     spec:
       containers:
-      - image: ratiel/kdd:3
+      - image: ratiel/kdd:5
         name: kdd
         imagePullPolicy: Always
         command:

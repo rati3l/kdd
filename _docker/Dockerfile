@@ -19,11 +19,12 @@ RUN addgroup -S kdd && adduser -S kdd -G kdd
 USER kdd
 
 # RUN apk add gcc musl
+
 WORKDIR /app
-COPY --from=go_builder /kdd  ./kdd/app/kdd
+COPY --from=go_builder /kdd  ./kdd
 COPY --from=node_builder /build/build ./_ui/build
 
 EXPOSE 3333
-WORKDIR /app/kdd
-CMD ["./kdd"] 
+
+CMD ["/app/kdd"] 
 
