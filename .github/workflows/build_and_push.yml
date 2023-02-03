@@ -11,7 +11,7 @@ jobs:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
-	  - name: run build 
+    - name: run build 
       uses: ./.github/actions/build
       with:
         IMAGE_NAME: ${{ env.IMAGE_NAME }}

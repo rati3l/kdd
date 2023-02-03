@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-	  - name: run build
+    - name: run build
       uses: ./.github/actions/build
       with:
         IMAGE_NAME: ${{ env.IMAGE_NAME }}
