@@ -134,7 +134,7 @@ function PageContainer(props: Props) {
                         <ListItemText disableTypography primary={<Typography variant="body2" style={{ fontWeight: "bold" }}>Cluster</Typography>} />
                     </ListItem>
                     <ListItem disablePadding>
-                        <ListItemButton>
+                            <ListItemButton href="/ui/nodes" >
                             <ListItemText primary="Nodes" />
                         </ListItemButton>
                     </ListItem>

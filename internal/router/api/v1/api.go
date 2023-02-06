@@ -40,6 +40,23 @@ func (a *API) Response(c *gin.Context, httpCode, errCode int, data interface{}) 
 	})
 }
 
+func (a *API) GetNodes(c *gin.Context) {
+	collection, err := a.ds.GetAllNodes()
+	if err != nil {
+		a.Response(c, http.StatusInternalServerError, ERROR, nil)
+		return
+	}
+
+	// sorting result
+	result := collection.ToList()
+	nodes := make([]models.Node, len(result))
+	for i := 0; i < len(result); i++ {
+		nodes[i] = result[i].(models.Node)
+	}
+	sort.Sort(models.ByNodeName(nodes))
+	a.Response(c, http.StatusOK, SUCCESS, nodes)
+}
+
 func (a *API) GetNamespaces(c *gin.Context) {
 	collection, err := a.ds.GetAllNamespaces()
 	if err != nil {

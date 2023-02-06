@@ -12,6 +12,7 @@ const (
 	WORKLOAD_TYPE_POD         string = "Pod"
 )
 
+// TODO we should have on generic function to sort by name
 // ByWorkloadName implements sort.Interface based on the Workload name field.
 type ByWorkloadName []Workload
 
@@ -33,6 +34,13 @@ type ByNamespaceName []Namespace
 func (a ByNamespaceName) Len() int           { return len(a) }
 func (a ByNamespaceName) Less(i, j int) bool { return a[i].Name < a[j].Name }
 func (a ByNamespaceName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+// ByNodeName implements sort.Interface based on the Node name field.
+type ByNodeName []Node
+
+func (a ByNodeName) Len() int           { return len(a) }
+func (a ByNodeName) Less(i, j int) bool { return a[i].Name < a[j].Name }
+func (a ByNodeName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 type Workload interface {
 	GetWorkloadName() string

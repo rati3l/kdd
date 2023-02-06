@@ -27,6 +27,7 @@ func InitRouter(ds *persistence.DataStore, ka *services.KubeAPIAdapter) *gin.Eng
 	apiv1 := r.Group("/api/v1")
 	{
 		api := v1.NewAPI(ds, ka)
+		apiv1.GET("/nodes", api.GetNodes)
 		apiv1.GET("/namespaces", api.GetNamespaces)
 		apiv1.GET("/namespaces/:name", api.GetNamespace)
 		apiv1.GET("/workloads", api.GetWorkloads)

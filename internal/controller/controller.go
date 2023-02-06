@@ -43,6 +43,7 @@ func (c *Controller) Run(done <-chan struct{}) {
 		defer wg.Done()
 		zap.L().Debug("start collecting initial data")
 		res, err := c.wlc.Collect()
+		c.ds.ReplaceNodes(res.GetNodeCollection())
 		c.ds.ReplaceNamespaces(res.GetNamespaceCollection())
 		c.ds.ReplaceWorkloads(res.GetWorkloadCollection())
 		c.ds.UpdateMetrics(res.GetContainerMetricsCollection())
@@ -62,6 +63,7 @@ func (c *Controller) Run(done <-chan struct{}) {
 			case <-ticker.C:
 				zap.L().Debug("start collecting data")
 				res, err := c.wlc.Collect()
+				c.ds.ReplaceNodes(res.GetNodeCollection())
 				c.ds.ReplaceNamespaces(res.GetNamespaceCollection())
 				c.ds.ReplaceWorkloads(res.GetWorkloadCollection())
 				c.ds.UpdateMetrics(res.GetContainerMetricsCollection())

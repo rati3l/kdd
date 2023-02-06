@@ -8,6 +8,7 @@ import (
 	"gitlab.com/patrick.erber/kdd/internal/models"
 	"go.uber.org/zap"
 	core_v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -37,6 +38,7 @@ func NewWorkloadCollector(cfg *WorkloadCollectorConfig) *WorkloadCollector {
 
 type CollectorResult struct {
 	containerMetricsCollection *models.Collection
+	nodeCollection             *models.Collection
 	namespaceCollection        *models.Collection
 	workloadCollection         *models.Collection
 }
@@ -44,9 +46,14 @@ type CollectorResult struct {
 func NewCollectorResult() *CollectorResult {
 	return &CollectorResult{
 		containerMetricsCollection: models.NewCollection(),
+		nodeCollection:             models.NewCollection(),
 		namespaceCollection:        models.NewCollection(),
 		workloadCollection:         models.NewCollection(),
 	}
+}
+
+func (r *CollectorResult) GetNodeCollection() *models.Collection {
+	return r.nodeCollection
 }
 
 func (r *CollectorResult) GetContainerMetricsCollection() *models.Collection {
@@ -65,6 +72,10 @@ func (r *CollectorResult) GetWorkloadCollection() *models.Collection {
 func (w *WorkloadCollector) Collect() (*CollectorResult, error) {
 	result := NewCollectorResult()
 	zap.L().Debug("start requesting data")
+
+	if err := w.collectNodes(result.nodeCollection); err != nil {
+		return nil, err
+	}
 	if err := w.collectNamspaces(result.namespaceCollection); err != nil {
 		return nil, err
 	}
@@ -92,6 +103,55 @@ func (w *WorkloadCollector) Collect() (*CollectorResult, error) {
 	zap.L().Debug("end requesting data")
 
 	return result, nil
+}
+
+func (w *WorkloadCollector) collectNodes(collection *models.Collection) error {
+	nodesList, err := w.cfg.ClientSet.CoreV1().Nodes().List(context.TODO(), v1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, node := range nodesList.Items {
+
+		// get node roels
+		var nodeRoles string
+		for key := range node.Labels {
+			if strings.HasPrefix(key, "node-role") {
+				// avoid having space with only single role
+				if len(nodeRoles) > 0 {
+					nodeRoles += " " + strings.Split(key, "/")[1]
+				} else {
+					nodeRoles += strings.Split(key, "/")[1]
+				}
+			}
+		}
+
+		// get node status
+		var status string
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == "Ready" {
+				status = condition.Reason
+			}
+		}
+
+		// cast cpu to an usable value
+		cpu, _ := node.Status.Capacity.Cpu().AsInt64()
+
+		collection.Set(node.Name, models.Node{
+			Name:              node.Name,
+			Cpu:               cpu,
+			Memory:            node.Status.Capacity.Memory().ScaledValue(resource.Mega),
+			OsImage:           node.Status.NodeInfo.OSImage,
+			KubeletVersion:    node.Status.NodeInfo.KubeletVersion,
+			CreationTimestamp: node.CreationTimestamp.Time,
+			Status:            status,
+			Roles:             nodeRoles,
+			Labels:            node.Labels,
+			Annotations:       node.Annotations,
+		}, false)
+	}
+
+	return nil
 }
 
 // collectNamespaces this function is responsible to collect namespaces
@@ -320,8 +380,8 @@ func (*WorkloadCollector) buildContainerList(listOfContainers []core_v1.Containe
 func (w *WorkloadCollector) collectContainerMetrics(collection *models.Collection) error {
 	metrics, err := w.cfg.MertricsClientSet.MetricsV1beta1().PodMetricses(v1.NamespaceAll).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
-		zap.L().Warn("could not load metrics data", zap.Error(err))
-		return err
+		zap.L().Error("could not load metrics data", zap.Error(err))
+		return nil
 	}
 
 	for _, podMetric := range metrics.Items {

@@ -24,6 +24,19 @@ type DataStore struct {
 }
 
 const sqlite3_schema string = `
+CREATE TABLE IF NOT EXISTS nodes (
+	key TEXT NOT NULL PRIMARY KEY,
+	name TEXT NOT NULL, 
+	status TEXT NOT NULL, 
+	roles TEXT NOT NULL,
+	cpu INTEGER NOT NULL, 
+	memory INTEGER NOT NULL, 
+	os_image TEXT NOT NULL,
+	kubelet_version TEXT NOT NULL, 
+	labels TEXT NOT NULL, 
+	annotations TEXT NOT NULL,
+	creation_timestamp INTEGER NOT NULL
+); 
 CREATE TABLE IF NOT EXISTS namespaces (
 	key TEXT NOT NULL PRIMARY KEY,
 	status TEXT,
@@ -54,6 +67,7 @@ CREATE TABLE IF NOT EXISTS container_metrics (
 	memory_usage INTEGER NOT NULL,
 	creation_timestamp INTEGER NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_nodes_name ON nodes(name);
 CREATE INDEX IF NOT EXISTS idx_namespaces_name ON namespaces(name);
 CREATE INDEX IF NOT EXISTS idx_workloads_namespacename ON workloads(namespace);
 CREATE INDEX IF NOT EXISTS idx_container_metrics_pod_name ON container_metrics(pod_name);
@@ -103,6 +117,110 @@ func NewSQLiteDataStore(filename string) (*DataStore, error) {
 	}, nil
 }
 
+func (d *DataStore) ReplaceNodes(collection *models.Collection) error {
+	cntFields := 11
+	sqlStmtHead := "REPLACE INTO nodes (key, name, cpu, memory, os_image, kubelet_version, labels, annotations, creation_timestamp, status, roles) VALUES "
+	sqlStmtVals := "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	rows := collection.Len()
+	values := make([]any, rows*cntFields)
+	i := 0
+	for key, value := range collection.GetAll() {
+		node := value.(models.Node)
+		labels, err := json.Marshal(node.Labels)
+		if err != nil {
+			return err
+		}
+		annotations, err := json.Marshal(node.Annotations)
+		if err != nil {
+			return err
+		}
+		creationTimestamp := node.CreationTimestamp.Unix()
+
+		values[i] = key
+		values[i+1] = node.Name
+		values[i+2] = node.Cpu
+		values[i+3] = node.Memory
+		values[i+4] = node.OsImage
+		values[i+5] = node.KubeletVersion
+		values[i+6] = string(labels)
+		values[i+7] = string(annotations)
+		values[i+8] = strconv.FormatInt(creationTimestamp, 10)
+		values[i+9] = node.Status
+		values[i+10] = node.Roles
+		i += cntFields
+	}
+
+	if err := d.replace(sqlStmtHead, sqlStmtVals, rows, values); err != nil {
+		zap.L().Error("could not replace nodes", zap.Error(err))
+		return err
+	}
+
+	return d.cleanUpAfterReplace("nodes", collection.GetKeys())
+}
+
+func (d *DataStore) GetAllNodes() (*models.Collection, error) {
+	collection := models.NewCollection()
+	sqlStmt := "SELECT key, name, cpu, memory, os_image, kubelet_version, labels, annotations, creation_timestamp, roles, status FROM nodes"
+	stmt, err := d.db.Prepare(sqlStmt)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := stmt.Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var key string
+		var name string
+		var roles string
+		var status string
+		var cpu int64
+		var memory int64
+		var os_image string
+		var kubelet_version string
+		var creationTimestamp int64
+		var rawLabels []byte
+		var rawAnnotations []byte
+		labels := make(map[string]string)
+		annotations := make(map[string]string)
+
+		if err := rows.Scan(&key, &name, &cpu, &memory, &os_image, &kubelet_version, &rawLabels, &rawAnnotations, &creationTimestamp, &roles, &status); err != nil {
+			zap.L().Error("Could not scan result from sqllite database", zap.Error(err))
+			return nil, err
+		}
+		if err := json.Unmarshal(rawLabels, &labels); err != nil {
+			zap.L().Error("could not unmarshal labels", zap.Error(err))
+			continue
+		}
+
+		if err := json.Unmarshal(rawAnnotations, &annotations); err != nil {
+			zap.L().Error("could not unmarshal annotations", zap.Error(err))
+			continue
+		}
+
+		ns := models.Node{
+			Name:              name,
+			Roles:             roles,
+			Status:            status,
+			Cpu:               cpu,
+			Memory:            memory,
+			OsImage:           os_image,
+			KubeletVersion:    kubelet_version,
+			Labels:            labels,
+			Annotations:       annotations,
+			CreationTimestamp: time.Unix(creationTimestamp, 0),
+		}
+
+		collection.Set(key, ns, false)
+	}
+
+	return collection, nil
+
+}
+
 func (d *DataStore) ReplaceNamespaces(collection *models.Collection) error {
 	cntFields := 6
 	sqlStmtHead := "REPLACE INTO namespaces (key, name, status, labels, annotations, creation_timestamp) VALUES "
@@ -132,6 +250,7 @@ func (d *DataStore) ReplaceNamespaces(collection *models.Collection) error {
 	}
 
 	if err := d.replace(sqlStmtHead, sqlStmtVals, rows, values); err != nil {
+		zap.L().Error("could not replace namespaces", zap.Error(err))
 		return err
 	}
 
@@ -290,6 +409,7 @@ func (d *DataStore) ReplaceWorkloads(collection *models.Collection) error {
 	}
 
 	if err := d.replace(sqlStmtHead, sqlStmtVals, rows, values); err != nil {
+		zap.L().Error("could not replace workloads", zap.Error(err))
 		return err
 	}
 
@@ -682,6 +802,7 @@ func (d *DataStore) UpdateMetrics(collection *models.Collection) error {
 	}
 
 	if err := d.replace(sqlStmtHead, sqlStmtVals, rows, values); err != nil {
+		zap.L().Error("could not replace metrics", zap.Error(err))
 		return err
 	}
 

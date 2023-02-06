@@ -13,6 +13,7 @@ import DaemonSets from "./pages/Daemonsets";
 import Workload from "./pages/Workload";
 import Pods from "./pages/Pods";
 import Pod from "./pages/Pod";
+import Nodes from "./pages/Nodes";
 
 const LOCAL_STORAGE_REFRESH_INTERVAL_KEY = "refreshIntervalMS"
 
@@ -49,6 +50,7 @@ function App() {
             <Route path="/ui/workloads/statefulsets" element={<StatefulSets refreshIntervalMS={refreshIntervalMS} />}></Route>
             <Route path="/ui/workloads/daemonsets" element={<DaemonSets refreshIntervalMS={refreshIntervalMS} />}></Route>
             <Route path="/ui/workloads/pods" element={<Pods refreshIntervalMS={refreshIntervalMS} />}></Route>
+            <Route path="/ui/nodes" element={<Nodes refreshIntervalMS={refreshIntervalMS} />}></Route>
           </Routes>
         </PageContainer>
       </Router>
