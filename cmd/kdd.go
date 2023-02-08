@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -21,7 +20,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 	metrics "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
@@ -46,53 +44,52 @@ func sigHandler() <-chan struct{} {
 	return stop
 }
 
-func getClientConfig() (*rest.Config, string) {
+func getClientConfig() *rest.Config {
 	appConfig, err := config.GetConfig()
 	if err != nil {
 		zap.L().Error("Failed to get the configuration", zap.Error(err))
 	}
 
 	var cfg *rest.Config
-	var kubeconfig string
 
 	if appConfig.Local {
-		kubeconfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
-		cfg, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+		cfg, err = clientcmd.BuildConfigFromFlags("", appConfig.KubeConfigPath)
 		if err != nil {
-			zap.L().Fatal("build kubernetes flag", zap.String("kubeconfig", kubeconfig))
+			zap.L().Fatal("building kubernetes config failed", zap.String("kubeconfig", appConfig.KubeConfigPath))
 		}
 	} else {
-		kubeconfig = "in cluster configuration"
 		cfg, err = rest.InClusterConfig()
 		if err != nil {
-			zap.L().Fatal("could not create config", zap.String("kubeconfig", kubeconfig))
+			zap.L().Fatal("could not create config using service account")
 		}
 	}
 
-	return cfg, kubeconfig
+	return cfg
 }
 
 func buildClientSet() *kubernetes.Clientset {
-	config, kubeconfig := getClientConfig()
+	config := getClientConfig()
+
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		zap.L().Fatal("could not create kubernetes client set", zap.String("kubeconfig", kubeconfig))
+		zap.L().Fatal("could not create kubernetes client set")
 	}
 
 	return clientSet
 }
 
 func buildMetricsClientSet() *metrics.Clientset {
-	config, kubeconfig := getClientConfig()
+	config := getClientConfig()
 	clientSet, err := metrics.NewForConfig(config)
 	if err != nil {
-		zap.L().Fatal("could not create kubernetes metrics client set", zap.String("kubeconfig", kubeconfig))
+		zap.L().Fatal("could not create kubernetes metrics client set")
 	}
 
 	return clientSet
 }
 
 func main() {
+
 	logger, _ := zap.NewDevelopment()
 	defer logger.Sync()
 
