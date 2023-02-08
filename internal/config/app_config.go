@@ -2,7 +2,6 @@ package config
 
 import (
 	"flag"
-	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -75,7 +74,6 @@ func LoadConfig() (config *Config, err error) {
 
 	env_prefix := "KDD_"
 	for _, key := range viper.AllKeys() {
-		fmt.Println(key)
 		envKey := strings.ToUpper(env_prefix + key)
 		err := viper.BindEnv(key, envKey)
 		if err != nil {
@@ -85,6 +83,6 @@ func LoadConfig() (config *Config, err error) {
 	}
 
 	err = viper.Unmarshal(&config)
-	fmt.Println(config)
+	zap.L().Sugar().Infof("Config:\n%+v\n", config)
 	return
 }

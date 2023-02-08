@@ -25,9 +25,9 @@ spec:
       - image: ratiel/kdd:5
         name: kdd
         imagePullPolicy: Always
-        command:
-         - /app/kdd
-         - local=false
+        env:
+        - name: KDD_LOCAL
+          value: "False"
 ---
 apiVersion: v1
 kind: Service
@@ -37,7 +37,7 @@ metadata:
     app: kdd
   namespace: kdd
 spec:
-  type: ClusterIP
+  type: NodePort
   ports:
   - port: 80
     targetPort: 3333

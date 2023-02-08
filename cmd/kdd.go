@@ -97,7 +97,6 @@ func main() {
 	defer undo()
 
 	// handle config here
-
 	appConfig, err := config.GetConfig()
 	if err != nil {
 		zap.L().Error("Failed to get the configuration", zap.Error(err))

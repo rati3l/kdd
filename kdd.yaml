@@ -1,4 +1,4 @@
 local: true
-http_port: 3334
+http_port: 3333
 static_files: ../_ui/build/
 # kube_config_path:
