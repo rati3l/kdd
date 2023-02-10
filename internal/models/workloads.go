@@ -278,24 +278,34 @@ func (d StatefulSetWorkload) GetCreationTimestamp() time.Time {
 	return d.CreationTimestamp
 }
 
+type PodOwnerRessource struct {
+	APIVersion string `json:"api_version"`
+	Kind       string `json:"kind"`
+	UID        string `json:"uid"`
+	Name       string `json:"name"`
+}
+
 // PodWorkload - represents a pod
 type PodWorkload struct {
 	GeneralWorkloadInfo `json:"workload_info"`
-	Status              string `json:"status"`
-	Restarts            int    `json:"restarts"`
+	Status              string              `json:"status"`
+	Restarts            int                 `json:"restarts"`
+	PodOwnerRessources  []PodOwnerRessource `json:"pod_owner_ressources"`
 }
 
 func (p PodWorkload) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		GeneralWorkloadInfo `json:"workload_info"`
-		Status              string `json:"status"`
-		Type                string `json:"type"`
-		Restarts            int    `json:"restarts"`
+		Status              string              `json:"status"`
+		Type                string              `json:"type"`
+		Restarts            int                 `json:"restarts"`
+		PodOwnerRessources  []PodOwnerRessource `json:"pod_owner_ressources"`
 	}{
 		GeneralWorkloadInfo: p.GeneralWorkloadInfo,
 		Status:              p.Status,
 		Type:                p.GetType(),
 		Restarts:            p.Restarts,
+		PodOwnerRessources:  p.PodOwnerRessources,
 	})
 }
 

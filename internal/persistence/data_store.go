@@ -50,7 +50,8 @@ CREATE TABLE IF NOT EXISTS workloads (
 	workload_name TEXT NOT NULL, 
 	workload_type TEXT NOT NULL,
 	annotations TEXT NOT NULL,
-	namespace TEXT NOT NULL, 
+	namespace TEXT NOT NULL,
+	owner_ressources TEXT NOT NULL,
 	labels TEXT NOT NULL,
 	selector TEXT NOT NULL,
 	containers TEXT NOT NULL,
@@ -75,6 +76,8 @@ CREATE INDEX IF NOT EXISTS idx_container_metrics_container_name ON container_met
 CREATE UNIQUE INDEX IF NOT EXISTS idx_container_metrics_unique_key_creation_timestamp ON container_metrics(key, creation_timestamp)
 `
 
+const workloads_sql_fields = "key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, restarts, owner_ressources, creation_timestamp"
+
 func filterWorkloadBySelector(selectorFilter map[string]string) models.FilterFunc {
 	return func(a interface{}) bool {
 		workload := a.(models.Workload)
@@ -89,6 +92,31 @@ func filterWorkloadBySelector(selectorFilter map[string]string) models.FilterFun
 		}
 
 		return len(selectorFilter) == found
+	}
+}
+
+func filterPodByOwnerRessource(ownerRessourceName string) models.FilterFunc {
+	return func(a interface{}) bool {
+		workload := a.(models.PodWorkload)
+		for _, r := range workload.PodOwnerRessources {
+			if r.Name == ownerRessourceName {
+				return true
+			}
+		}
+
+		return false
+	}
+}
+
+func filterCronjobsPodsByOwnerRessource(workloadName string) models.FilterFunc {
+	return func(a interface{}) bool {
+		workload := a.(models.PodWorkload)
+		for _, r := range workload.PodOwnerRessources {
+			if strings.HasPrefix(r.Name, fmt.Sprintf("%s-", workloadName)) && r.Kind == "Job" {
+				return true
+			}
+		}
+		return false
 	}
 }
 
@@ -359,9 +387,9 @@ func (d *DataStore) GetNamespace(name string) (*models.Namespace, error) {
 }
 
 func (d *DataStore) ReplaceWorkloads(collection *models.Collection) error {
-	cntFields := 11
-	sqlStmtHead := "REPLACE INTO workloads (key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, restarts, creation_timestamp) VALUES "
-	sqlStmtVals := "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	cntFields := 12
+	sqlStmtHead := fmt.Sprintf("REPLACE INTO workloads (%s) VALUES ", workloads_sql_fields)
+	sqlStmtVals := "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	rows := collection.Len()
 	values := make([]any, rows*cntFields)
 	i := 0
@@ -401,10 +429,17 @@ func (d *DataStore) ReplaceWorkloads(collection *models.Collection) error {
 
 		if value, ok := workload.(models.PodWorkload); ok {
 			values[i+9] = value.Restarts
+			owners, err := json.Marshal(value.PodOwnerRessources)
+			if err != nil {
+				return err
+			}
+			values[i+10] = owners
 		} else {
 			values[i+9] = "0"
+			values[i+10] = "[]"
 		}
-		values[i+10] = strconv.FormatInt(creationTimestamp, 10)
+
+		values[i+11] = strconv.FormatInt(creationTimestamp, 10)
 		i += cntFields
 	}
 
@@ -417,7 +452,7 @@ func (d *DataStore) ReplaceWorkloads(collection *models.Collection) error {
 }
 
 func (d *DataStore) GetAllWorkloads() (*models.Collection, error) {
-	sqlStmt := "SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, restarts, creation_timestamp FROM workloads"
+	sqlStmt := fmt.Sprintf("SELECT %s FROM workloads", workloads_sql_fields)
 	stmt, err := d.db.Prepare(sqlStmt)
 	if err != nil {
 		return nil, err
@@ -433,7 +468,7 @@ func (d *DataStore) GetAllWorkloads() (*models.Collection, error) {
 }
 
 func (d *DataStore) GetAllByWorkloadType(t string) (*models.Collection, error) {
-	sqlStmt := "SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, restarts, creation_timestamp FROM workloads WHERE workload_type=?"
+	sqlStmt := fmt.Sprintf("SELECT %s FROM workloads WHERE workload_type=?", workloads_sql_fields)
 	stmt, err := d.db.Prepare(sqlStmt)
 	if err != nil {
 		return nil, err
@@ -460,6 +495,7 @@ func (*DataStore) createWorkloadCollection(rows *sql.Rows) (*models.Collection, 
 		var rawSelector []byte
 		var rawContainers []byte
 		var rawStatus []byte
+		var rawOwnerRessources []byte
 		var creationTimestamp int
 		var restarts int
 		containers := make([]models.Container, 0)
@@ -467,7 +503,7 @@ func (*DataStore) createWorkloadCollection(rows *sql.Rows) (*models.Collection, 
 		annotations := make(map[string]string)
 		selector := make(map[string]string)
 
-		if err := rows.Scan(&key, &workloadName, &workloadType, &namespace, &rawLabels, &rawAnnotations, &rawSelector, &rawContainers, &rawStatus, &restarts, &creationTimestamp); err != nil {
+		if err := rows.Scan(&key, &workloadName, &workloadType, &namespace, &rawLabels, &rawAnnotations, &rawSelector, &rawContainers, &rawStatus, &restarts, &rawOwnerRessources, &creationTimestamp); err != nil {
 			zap.L().Error("Could not scan result from sqllite database", zap.Error(err))
 			return nil, err
 		}
@@ -497,6 +533,10 @@ func (*DataStore) createWorkloadCollection(rows *sql.Rows) (*models.Collection, 
 			Containers:        containers,
 			CreationTimestamp: time.Unix(int64(creationTimestamp), 0),
 		}
+
+		/**
+			FIXME: Bad design! - We should not rely on type checking in the class. New models are enforcing changes here. (SRP, Open-Close?)
+		**/
 
 		switch workloadType {
 		case models.WORKLOAD_TYPE_DEPLOYMENT:
@@ -538,10 +578,18 @@ func (*DataStore) createWorkloadCollection(rows *sql.Rows) (*models.Collection, 
 				zap.L().Error("could not unmarshal status object", zap.Error(err))
 				continue
 			}
+
+			var ownerRessources []models.PodOwnerRessource
+			if err := json.Unmarshal(rawOwnerRessources, &ownerRessources); err != nil {
+				zap.L().Error("could not unmarshal Owner Reference object", zap.Error(err))
+				continue
+			}
+
 			wl := models.PodWorkload{
 				GeneralWorkloadInfo: workloadInfo,
 				Status:              status,
 				Restarts:            restarts,
+				PodOwnerRessources:  ownerRessources,
 			}
 			collection.Set(key, wl, false)
 		default:
@@ -553,7 +601,7 @@ func (*DataStore) createWorkloadCollection(rows *sql.Rows) (*models.Collection, 
 }
 
 func (d *DataStore) GetWorkloadsByNamespace(namespace string) (*models.Collection, error) {
-	sqlStmt := "SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, restarts, creation_timestamp FROM workloads WHERE namespace=?"
+	sqlStmt := fmt.Sprintf("SELECT %s FROM workloads WHERE namespace=?", workloads_sql_fields)
 	stmt, err := d.db.Prepare(sqlStmt)
 	if err != nil {
 		return nil, err
@@ -655,7 +703,7 @@ func (d *DataStore) GetWorkloadBy(filters map[string]string) (models.Workload, e
 		i++
 	}
 
-	sqlStmt := fmt.Sprintf("SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, restarts, creation_timestamp FROM workloads WHERE %s LIMIT 1", strings.Join(sqlParams, " AND "))
+	sqlStmt := fmt.Sprintf("SELECT %s FROM workloads WHERE %s LIMIT 1", workloads_sql_fields, strings.Join(sqlParams, " AND "))
 	stmt, err := d.db.Prepare(sqlStmt)
 	if err != nil {
 		return nil, err
@@ -694,7 +742,7 @@ func (d *DataStore) GetWorkloadsBy(filters map[string]string) (*models.Collectio
 		i++
 	}
 
-	sqlStmt := fmt.Sprintf("SELECT key, workload_name, workload_type, namespace, labels, annotations, selector, containers, status, restarts, creation_timestamp FROM workloads WHERE %s", strings.Join(sqlParams, " AND "))
+	sqlStmt := fmt.Sprintf("SELECT %s FROM workloads WHERE %s", workloads_sql_fields, strings.Join(sqlParams, " AND "))
 	stmt, err := d.db.Prepare(sqlStmt)
 	if err != nil {
 		return nil, err
@@ -718,7 +766,15 @@ func (d *DataStore) GetPodsForWorkload(w models.Workload) (*models.Collection, e
 	if err != nil {
 		return nil, err
 	}
-	return collection.Filter(filterWorkloadBySelector(w.GetSelector())), nil
+
+	// FIXME: When also implementing replica set, we can use replica set to identify it and can get rid of this typecheck!
+	if w.GetType() == models.WORKLOAD_TYPE_DEPLOYMENT {
+		return collection.Filter(filterWorkloadBySelector(w.GetSelector())), nil
+	} else if w.GetType() == models.WORKLOAD_TYPE_CRONJOB {
+		return collection.Filter(filterCronjobsPodsByOwnerRessource(w.GetWorkloadName())), nil
+	} else {
+		return collection.Filter(filterPodByOwnerRessource(w.GetWorkloadName())), nil
+	}
 }
 
 func (d *DataStore) replace(sqlStmtHead string, sqlStmtVals string, rows int, values []any) error {

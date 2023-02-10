@@ -308,6 +308,16 @@ func (w *WorkloadCollector) collectPods(collection *models.Collection) error {
 			}
 		}
 
+		podOwnerRessources := make([]models.PodOwnerRessource, len(pod.OwnerReferences))
+		for i, owner := range pod.OwnerReferences {
+			podOwnerRessources[i] = models.PodOwnerRessource{
+				APIVersion: owner.APIVersion,
+				Kind:       owner.Kind,
+				UID:        string(owner.UID),
+				Name:       owner.Name,
+			}
+		}
+
 		err := collection.Set(fmt.Sprintf("%s_%s", pod.ObjectMeta.Namespace, pod.Name), models.PodWorkload{
 			GeneralWorkloadInfo: models.GeneralWorkloadInfo{
 				Namespace:         pod.ObjectMeta.Namespace,
@@ -317,8 +327,9 @@ func (w *WorkloadCollector) collectPods(collection *models.Collection) error {
 				Containers:        containers,
 				CreationTimestamp: pod.CreationTimestamp.Time,
 			},
-			Status:   string(pod.Status.Phase),
-			Restarts: int(restarts),
+			PodOwnerRessources: podOwnerRessources,
+			Status:             string(pod.Status.Phase),
+			Restarts:           int(restarts),
 		}, false)
 
 		if err != nil {
