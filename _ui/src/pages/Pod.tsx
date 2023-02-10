@@ -115,8 +115,6 @@ function Pod(props: Props) {
     const paramNamespace = useParams<string>()["namespace"]
     const paramName = useParams<string>()["name"]
 
-    let interval: any = null
-
     useEffect(() => {
         setLoading(true)
         const fetchFunc = (namespace: string | undefined, name: string | undefined) => {
@@ -205,12 +203,7 @@ function Pod(props: Props) {
         // fetching data initially
         fetchFunc(paramNamespace, paramName)
 
-        // check if already a interval is configured
-        if (interval) {
-            clearInterval(interval)
-        }
-        // configure new interval
-        interval = setInterval(() => {
+        const interval: any = setInterval(() => {
             fetchFunc(paramNamespace, paramName)
         }, props.refreshIntervalMS)
 

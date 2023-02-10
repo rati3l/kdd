@@ -145,8 +145,6 @@ function Workload(props: Props) {
     const paramName = useParams<string>()["name"]
     const workloadType = useParams<string>()["workloadType"]
 
-    let interval: any = null
-
     useEffect(() => {
         setLoading(true)
         const fetchFunc = (namespace: string | undefined, name: string | undefined) => {
@@ -240,22 +238,16 @@ function Workload(props: Props) {
             setLoading(true)
             // fetching data initially
             fetchFunc(paramNamespace, paramName)
-
-            // check if already a interval is configured
-            if (interval) {
-                clearInterval(interval)
-            }
-            // configure new interval
-            interval = setInterval(() => {
+            const interval: any = setInterval(() => {
                 fetchFunc(paramNamespace, paramName)
             }, props.refreshIntervalMS)
-
+    
             return () => {
                 clearInterval(interval)
-            }
+            }    
         }
 
-    }, [props.refreshIntervalMS, paramNamespace, paramName]);
+    }, [props.refreshIntervalMS, paramNamespace, paramName, workloadType]);
 
 
     if (!checkWorkloadType(workloadType)) {

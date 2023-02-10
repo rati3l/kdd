@@ -14,7 +14,6 @@ function Jobs(props: Props) {
     const [errorMessage, setErrorMessage] = useState("")
     const [data, setData] = useState([])
 
-    let interval: any = null
     useEffect(() => {
         setLoading(true)
 
@@ -42,19 +41,13 @@ function Jobs(props: Props) {
         // fetching data initially
         fetchFunc()
 
-        // check if already a interval is configured
-        if (interval) {
-            clearInterval(interval)
-        }
-        // configure new interval
-        interval = setInterval(() => {
+        const interval: any = setInterval(() => {
             fetchFunc()
         }, props.refreshIntervalMS)
 
         return () => {
             clearInterval(interval)
         }
-
     }, [props.refreshIntervalMS]);
 
 

@@ -14,8 +14,6 @@ function Namespaces(props: Props) {
     const [errorMessage, setErrrorMessage] = useState("")
     const [data, setData] = useState([])
 
-    let interval: any = null
-
     useEffect(() => {
 
         const getNamespaces = async () => {
@@ -69,12 +67,11 @@ function Namespaces(props: Props) {
 
         // fetching data initially
         fetchFunc()
-        // check if already a interval is configured
-        if (interval) {
-            clearInterval(interval)
-        }
-        // configure new interval
-        interval = setInterval(fetchFunc, props.refreshIntervalMS)
+
+        const interval: any = setInterval(() => {
+            fetchFunc()
+        }, props.refreshIntervalMS)
+
         return () => {
             clearInterval(interval)
         }

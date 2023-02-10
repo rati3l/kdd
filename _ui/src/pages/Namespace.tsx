@@ -99,7 +99,6 @@ function Namespace(props: Props) {
     };
 
     const paramName = useParams()["name"]
-    let interval: any = null
 
     useEffect(() => {
         setLoading(true)
@@ -162,12 +161,7 @@ function Namespace(props: Props) {
         // fetching data initially
         fetchFunc(paramName)
 
-        // check if already a interval is configured
-        if (interval) {
-            clearInterval(interval)
-        }
-        // configure new interval
-        interval = setInterval(() => {
+        const interval: any = setInterval(() => {
             fetchFunc(paramName)
         }, props.refreshIntervalMS)
 
