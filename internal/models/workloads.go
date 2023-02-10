@@ -10,6 +10,8 @@ const (
 	WORKLOAD_TYPE_DEAMONSET   string = "Daemonset"
 	WORKLOAD_TYPE_STATEFULSET string = "Statefulset"
 	WORKLOAD_TYPE_POD         string = "Pod"
+	WORKLOAD_TYPE_JOB         string = "Job"
+	WORKLOAD_TYPE_CRONJOB     string = "Cronjob"
 )
 
 // TODO we should have on generic function to sort by name
@@ -339,6 +341,169 @@ func (d PodWorkload) GetCreationTimestamp() time.Time {
 
 func (d PodWorkload) GetWorkloadStatus() interface{} {
 	return d.Status
+}
+
+// JobWorkload - represents a job workload
+type JobWorkload struct {
+	GeneralWorkloadInfo `json:"workload_info"`
+	Status              JobStatus `json:"status"`
+}
+
+func (d JobWorkload) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		GeneralWorkloadInfo `json:"workload_info"`
+		Status              JobStatus `json:"status"`
+		Type                string    `json:"type"`
+	}{
+		GeneralWorkloadInfo: d.GeneralWorkloadInfo,
+		Status:              d.Status,
+		Type:                d.GetType(),
+	})
+}
+
+type JobStatus struct {
+	Active         int32      `json:"active"`
+	Ready          *int32     `json:"ready"`
+	Failed         int32      `json:"failed"`
+	Succeeded      int32      `json:"succeeded"`
+	StartTime      *time.Time `json:"start_time"`
+	CompletionTime *time.Time `json:"completion_time"`
+}
+
+// GetType returns the workload type
+func (d JobWorkload) GetType() string {
+	return WORKLOAD_TYPE_JOB
+}
+
+// GetWorkloadName returns the workload name
+func (d JobWorkload) GetWorkloadName() string {
+	return d.WorkloadName
+}
+
+// GetNamespace returns the workload type
+func (d JobWorkload) GetNamespace() string {
+	return d.Namespace
+}
+
+// GetContainers returns containers
+func (d JobWorkload) GetContainers() []Container {
+	return d.Containers
+}
+
+// GetLabels returns labels
+func (d JobWorkload) GetLabels() map[string]string {
+	return d.Labels
+}
+
+// GetLabels returns annotations
+func (d JobWorkload) GetAnnotations() map[string]string {
+	return d.Annotations
+}
+
+// GetLabels returns Selector
+func (d JobWorkload) GetSelector() map[string]string {
+	return d.Selector
+}
+
+// GetCreationTimestamp returns annotations
+func (d JobWorkload) GetCreationTimestamp() time.Time {
+	return d.CreationTimestamp
+}
+
+func (d JobWorkload) GetWorkloadStatus() interface{} {
+	return d.Status
+}
+
+// CronjobWorkload - represents a Cronjob workload
+type CronjobWorkload struct {
+	GeneralWorkloadInfo   `json:"workload_info"`
+	Suspend               *bool         `json:"suspend"`
+	ConcurrencyPolicy     string        `json:"concurrency_policy"`
+	BackoffLimit          *int32        `json:"backoff_limit"`
+	FailedJobsHistory     *int32        `json:"failed_jobs_history"`
+	SuccessfulJobsHistory *int32        `json:"successful_jobs_history"`
+	Schedule              string        `json:"schedule"`
+	Status                CronjobStatus `json:"status"`
+}
+
+func (d CronjobWorkload) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		GeneralWorkloadInfo   `json:"workload_info"`
+		Status                CronjobStatus `json:"status"`
+		Type                  string        `json:"type"`
+		Suspend               *bool         `json:"suspend"`
+		ConcurrencyPolicy     string        `json:"concurrency_policy"`
+		BackoffLimit          *int32        `json:"backoff_limit"`
+		FailedJobsHistory     *int32        `json:"failed_jobs_history"`
+		SuccessfulJobsHistory *int32        `json:"successful_jobs_history"`
+		Schedule              string        `json:"schedule"`
+	}{
+		GeneralWorkloadInfo:   d.GeneralWorkloadInfo,
+		Status:                d.Status,
+		Type:                  d.GetType(),
+		Suspend:               d.Suspend,
+		ConcurrencyPolicy:     d.ConcurrencyPolicy,
+		BackoffLimit:          d.BackoffLimit,
+		FailedJobsHistory:     d.FailedJobsHistory,
+		SuccessfulJobsHistory: d.SuccessfulJobsHistory,
+		Schedule:              d.Schedule,
+	})
+}
+
+// GetType returns the workload type
+func (d CronjobWorkload) GetType() string {
+	return WORKLOAD_TYPE_CRONJOB
+}
+
+// GetWorkloadName returns the workload name
+func (d CronjobWorkload) GetWorkloadName() string {
+	return d.WorkloadName
+}
+
+// GetNamespace returns the workload type
+func (d CronjobWorkload) GetNamespace() string {
+	return d.Namespace
+}
+
+// GetContainers returns containers
+func (d CronjobWorkload) GetContainers() []Container {
+	return d.Containers
+}
+
+// GetLabels returns labels
+func (d CronjobWorkload) GetLabels() map[string]string {
+	return d.Labels
+}
+
+// GetLabels returns annotations
+func (d CronjobWorkload) GetAnnotations() map[string]string {
+	return d.Annotations
+}
+
+// GetLabels returns Selector
+func (d CronjobWorkload) GetSelector() map[string]string {
+	return d.Selector
+}
+
+// GetCreationTimestamp returns annotations
+func (d CronjobWorkload) GetCreationTimestamp() time.Time {
+	return d.CreationTimestamp
+}
+
+func (d CronjobWorkload) GetWorkloadStatus() interface{} {
+	return d.Status
+}
+
+type CronjobStatus struct {
+	Active             []ActiveCronjobInfo `json:"active_jobs"`
+	LastScheduledTime  *time.Time          `json:"last_scheduled_time"`
+	LastSuccessfulTime *time.Time          `json:"last_successful_time"`
+}
+
+type ActiveCronjobInfo struct {
+	APIVersion string `json:"api_version"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
 }
 
 type Container struct {

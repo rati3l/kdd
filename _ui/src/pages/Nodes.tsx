@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react"
-import PageHead from "../components/PageHead"
+import PageHead from "../components/commons/PageHead"
 import axios from "axios";
 import { Box } from "@mui/system";
 import { Alert, CircularProgress, Snackbar } from "@mui/material";
-import NodesDataGrid from "../components/NodesDataGrid";
+import NodesDataGrid from "../components/datagrids/NodesDataGrid";
 
 type Props = {
     refreshIntervalMS: number;

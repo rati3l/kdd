@@ -1,4 +1,3 @@
-import React from "react"
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -12,6 +11,8 @@ const drawerWidth = 240;
 type Props = {
     refreshIntervalMS: number;
     onRefreshIntervalChanged: any;
+    navOpen: boolean;
+    onNavOpenChanged: any;
     children: any;
 };
 
@@ -66,14 +67,13 @@ const AppBar = styled(MuiAppBar, {
 
 function PageContainer(props: Props) {
     const theme = useTheme();
-    const [open, setOpen] = React.useState(false);
 
     const handleDrawerOpen = () => {
-        setOpen(true);
+        props.onNavOpenChanged(true)
     };
 
     const handleDrawerClose = () => {
-        setOpen(false);
+        props.onNavOpenChanged(false)
     };
 
     const onChange = (e: SelectChangeEvent) => {
@@ -86,14 +86,14 @@ function PageContainer(props: Props) {
     return (
         <Box sx={{ display: 'flex' }}>
             <CssBaseline />
-            <AppBar position="fixed" open={open}>
+            <AppBar position="fixed" open={props.navOpen}>
                 <Toolbar variant="dense">
                     <IconButton
                         color="inherit"
                         aria-label="open drawer"
                         onClick={handleDrawerOpen}
                         edge="start"
-                        sx={{ mr: 2, ...(open && { display: 'none' }) }}>
+                        sx={{ mr: 2, ...(props.navOpen && { display: 'none' }) }}>
                         <MenuIcon />
                     </IconButton>
                     <Typography variant="h6" color="inherit" component="div" sx={{ "flexGrow": "1" }}>
@@ -122,7 +122,7 @@ function PageContainer(props: Props) {
             }}
                 variant="persistent"
                 anchor="left"
-                open={open}>
+                open={props.navOpen}>
                 <DrawerHeader>
                     <IconButton onClick={handleDrawerClose}>
                         {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
@@ -163,13 +163,23 @@ function PageContainer(props: Props) {
                         </ListItemButton>
                     </ListItem>
                     <ListItem disablePadding>
+                        <ListItemButton href="/ui/workloads/cronjobs" >
+                            <ListItemText primary="Cronjobs" />
+                        </ListItemButton>
+                    </ListItem>
+                    <ListItem disablePadding>
+                        <ListItemButton href="/ui/workloads/jobs" >
+                            <ListItemText primary="Jobs" />
+                        </ListItemButton>
+                    </ListItem>
+                    <ListItem disablePadding>
                         <ListItemButton href="/ui/workloads/pods" >
                             <ListItemText primary="Pods" />
                         </ListItemButton>
                     </ListItem>
                 </List>
             </Drawer>
-            <Main open={open}>
+            <Main open={props.navOpen}>
                 {props.children}
             </Main>
         </Box>

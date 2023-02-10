@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react"
-import PageHead from "../components/PageHead"
+import PageHead from "../components/commons/PageHead"
 import { Box } from "@mui/system";
 import { Alert, Card, CardContent, Chip, CircularProgress, Collapse, Grid, IconButton, Paper, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
 import { useParams } from "react-router-dom";
@@ -8,9 +8,10 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import axios from "axios";
 import filesize from "file-size";
 import moment from "moment";
-import SectionHead from "../components/SectionHead";
-import MemChart, { LimitMemory, RequestMemory } from "../components/MemChart";
-import CpuChart, { LimitCPU, RequestCPU } from "../components/CpuChart";
+import SectionHead from "../components/commons/SectionHead";
+import MemChart, { LimitMemory, RequestMemory } from "../components/charts/MemChart";
+import CpuChart, { LimitCPU, RequestCPU } from "../components/charts/CpuChart";
+import WorkloadInfoBox from "../components/infobox/WorkloadInfoBox";
 
 type Props = {
     refreshIntervalMS: number;
@@ -21,7 +22,7 @@ function Row(props: { row: any }) {
     const [open, setOpen] = React.useState(false);
 
     const renderStatusChip = (status: string) => {
-        return <Chip variant="outlined" label={status} size="small" color={(status === "Running" ? "success" : "error")} sx={{ mr: 1 }} />
+        return <Chip variant="outlined" label={status} size="small" color={(status === "Running" || status === "Succeeded" ? "success" : "error")} sx={{ mr: 1 }} />
     }
 
     return (
@@ -190,7 +191,7 @@ function Pod(props: Props) {
             }).catch((error) => {
                 if (axios.isAxiosError(error)) {
                     console.error("failed to retrieve pod information", error.message)
-                    setErrorMessage("failed to retrieve deployment information")
+                    setErrorMessage("failed to retrieve pod information")
                 } else {
                     console.error("a unknown error occurred", error)
                     setErrorMessage("a unknown error occurred")
@@ -233,24 +234,7 @@ function Pod(props: Props) {
     return <React.Fragment>
         <PageHead title={`Pod ${paramName}`} />
         <Box>
-            <div>
-                <Box mb={1}>
-                    <b>Status: </b> {workload.status !== "Running" ? <Chip variant="outlined" label={workload.status} size="small" color="warning" /> : <Chip variant="outlined" label={workload.status} size="small" color="success" />}
-                </Box>
-                <Box mb={1}>
-                    <b>Labels: </b> {Object.keys(workload.workload_info.labels || {}).map((key) => {
-                        return <Chip variant="filled" label={`${key}=${workload.workload_info.labels[key]}`} size="small" key={key} color="primary" sx={{ mr: 1 }} />
-                    })}
-                </Box>
-                <Box mb={1}>
-                    <b>Annotations: </b>{Object.keys(workload.workload_info.annotations || {}).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
-                        return <Chip variant="filled" label={`${key}=${workload.workload_info.annotations[key]}`} size="small" key={key} color="secondary" sx={{ mr: 1 }} />
-                    })}
-                </Box>
-                <Box mb={1}>
-                    <b>Creation Timestamp: </b> {moment(workload.workload_info.creation_date).format("YYYY-MM-DD HH:mm")} <Chip variant="outlined" color="secondary" label={moment(workload.workload_info.creation_date).fromNow()} size="small"></Chip>
-                </Box>
-            </div>
+            <WorkloadInfoBox workload={workload} />
         </Box>
         <SectionHead title="Metrics" />
         <Box>

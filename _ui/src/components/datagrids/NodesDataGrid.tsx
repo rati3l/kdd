@@ -1,8 +1,9 @@
-import { Chip, Link } from "@mui/material";
+import { Chip } from "@mui/material";
 import { Stack } from "@mui/system";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import moment from "moment";
 import { styled } from '@mui/material/styles';
+import filesize from "file-size";
 
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     "& .MuiDataGrid-renderingZone": {
@@ -20,9 +21,6 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     },
 }));
 
-
-
-
 const renderChips = (color: any) => {
     return (params: GridRenderCellParams<any>) => {
         return <Stack direction="row" sx={{ width: 380, flexWrap: "wrap" }}>{Object.keys(params.value).map((key) => {
@@ -32,8 +30,17 @@ const renderChips = (color: any) => {
     }
 }
 
-const renderNamespaceStatus = (params: GridRenderCellParams<any>) => {
-    return <Chip sx={{ marginBottom: "5px" }} label={params?.value} variant="outlined" color="success" size="small" />
+const renderStatus = (params: GridRenderCellParams<any>) => {
+    const colorFunc = (type: string) => {
+        switch (type) {
+            case "KubeletReady":
+                return "success"
+            default:
+                return "error"
+        }
+    }
+
+    return <Chip sx={{ marginBottom: "5px" }} label={params?.value} variant="outlined" color={colorFunc(params?.value)} size="small" />
 }
 
 const renderAge = () => {
@@ -42,26 +49,65 @@ const renderAge = () => {
     }
 }
 
+const renderMemory = () => {
+    return (params: GridRenderCellParams<any>) => {
+        return filesize(params?.value).human()
+    }
+}
+
+const renderCPU = () => {
+    return (params: GridRenderCellParams<any>) => {
+        return `${params?.value}m`
+    }
+}
+
 
 const columns: GridColDef[] = [
     {
         field: 'name',
         headerName: 'name',
-        width: 300,
-        renderCell: (params: GridRenderCellParams<any>) => {
-            return <Link href={`/ui/namespace/${params?.value}`}>{params?.value}</Link>
-        }
+        flex: 1
     },
     {
         field: 'status',
         headerName: 'status',
-        width: 200,
-        renderCell: renderNamespaceStatus,
+        flex: 1,
+        renderCell: renderStatus,
+        minWidth: 80,
+    },
+    {
+        field: 'cpu',
+        headerName: 'cpu',
+        flex: 1,
+        minWidth: 40,
+        renderCell: renderCPU()
+    },
+    {
+        field: 'memory',
+        headerName: 'memory',
+        flex: 1,
+        renderCell: renderMemory()
+    },
+    {
+        field: 'os_image',
+        headerName: 'os_image',
+        flex: 1
+    },
+    {
+        field: 'kubelet_version',
+        headerName: 'kubelet',
+        flex: 1
+    },
+    {
+        field: 'roles',
+        headerName: 'roles',
+        flex: 1
     },
     {
         field: 'labels',
         headerName: 'labels',
-        width: 400,
+        flex: 1,
+        minWidth: 400,
         disableColumnMenu: true,
         filterable: false,
         sortable: false,
@@ -70,47 +116,34 @@ const columns: GridColDef[] = [
     {
         field: 'annotations',
         headerName: 'annotations',
+        flex: 1,
         disableColumnMenu: true,
         filterable: false,
         sortable: false,
-        width: 400,
+        hideable: true, 
+        hide: true,
+        minWidth: 400,
         renderCell: renderChips("secondary"),
-    },
-    {
-        field: 'workloads',
-        headerName: 'workloads',
-        width: 300,
-        disableColumnMenu: true,
-        filterable: false,
-        sortable: false,
-        renderCell: (params: GridRenderCellParams<any>) => {
-            return <div>
-                <b>Deployments: </b>{params?.value["deployments"]}<br />
-                <b>Daemonsets: </b>{params?.value["daemonsets"]}<br />
-                <b>Statefulsets: </b>{params?.value["statefulsets"]}
-            </div>
-        }
     },
     {
         field: 'creation_date',
         headerName: 'age',
+        flex: 1,
         width: 200,
         disableColumnMenu: true,
         filterable: false,
         sortable: false,
         renderCell: renderAge(),
     }
-    /*
-    { field: 'labels', headerName: 'labels', width: 200 },
-    */
+
 ];
 
 type Props = {
     rows: any[];
 }
 
-function NamespaceDataGrid(props: Props) {
+function NodesDataGrid(props: Props) {
     return <StyledDataGrid disableSelectionOnClick={true} getRowId={(row: any) => { return row.name }} rows={props.rows} columns={columns} sx={{ height: "800px" }} />
 }
 
-export default NamespaceDataGrid
+export default NodesDataGrid

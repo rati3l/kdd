@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gitlab.com/patrick.erber/kdd/internal/adapters"
 	"gitlab.com/patrick.erber/kdd/internal/persistence"
 	v1 "gitlab.com/patrick.erber/kdd/internal/router/api/v1"
-	"gitlab.com/patrick.erber/kdd/internal/services"
 )
 
-func InitRouter(ds *persistence.DataStore, ka *services.KubeAPIAdapter) *gin.Engine {
+func InitRouter(ds *persistence.DataStore, ka *adapters.KubeAPIAdapter) *gin.Engine {
 	r := gin.New()
 
 	r.StaticFS("/static", http.Dir("../_ui/build/static"))
@@ -35,6 +35,8 @@ func InitRouter(ds *persistence.DataStore, ka *services.KubeAPIAdapter) *gin.Eng
 		apiv1.GET("/workloads/pods/:namespace/:name", api.GetPod)
 		apiv1.GET("/workloads/:workloadType/:namespace/:name", api.GetWorkload)
 		apiv1.GET("/workloads/statefulsets", api.GetStatefulSets)
+		apiv1.GET("/workloads/jobs", api.GetJobs)
+		apiv1.GET("/workloads/cronjobs", api.GetCronjobs)
 		apiv1.GET("/workloads/pods", api.GetPods)
 		apiv1.GET("/workloads/daemonsets", api.GetDaemonSet)
 		apiv1.GET("/container-metrics", api.GetContainerMetrics)

@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from "react"
-import PageHead from "../components/PageHead"
+import PageHead from "../components/commons/PageHead"
 import { Box } from "@mui/system";
 import { Alert, Chip, CircularProgress, Grid, Snackbar, Tab, Tabs } from "@mui/material";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import moment from "moment";
-import FailedCountCard from "../components/FailedCountCard";
-import SectionHead from "../components/SectionHead";
-import EventDataGrid from "../components/EventDataGrid";
-import DeploymentDataGrid from "../components/DeploymentDataGrid";
-import StatefulSeteDataGrid from "../components/StatefulSetDataGrid";
-import DaemonSetDataGrid from "../components/DaemonSetDataGrid";
+import FailedCountCard from "../components/infocards/FailedCountCard";
+import SectionHead from "../components/commons/SectionHead";
+import EventDataGrid from "../components/datagrids/EventDataGrid";
+import DeploymentDataGrid from "../components/datagrids/DeploymentDataGrid";
+import StatefulSeteDataGrid from "../components/datagrids/StatefulSetDataGrid";
+import DaemonSetDataGrid from "../components/datagrids/DaemonSetDataGrid";
 
 type Props = {
     refreshIntervalMS: number;

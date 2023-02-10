@@ -8,7 +8,6 @@ import (
 	"gitlab.com/patrick.erber/kdd/internal/models"
 	"go.uber.org/zap"
 	core_v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -134,13 +133,13 @@ func (w *WorkloadCollector) collectNodes(collection *models.Collection) error {
 			}
 		}
 
-		// cast cpu to an usable value
-		cpu, _ := node.Status.Capacity.Cpu().AsInt64()
+		// use milli value instead
+		cpu := node.Status.Capacity.Cpu().MilliValue()
 
 		collection.Set(node.Name, models.Node{
 			Name:              node.Name,
 			Cpu:               cpu,
-			Memory:            node.Status.Capacity.Memory().ScaledValue(resource.Mega),
+			Memory:            node.Status.Capacity.Memory().Value(),
 			OsImage:           node.Status.NodeInfo.OSImage,
 			KubeletVersion:    node.Status.NodeInfo.KubeletVersion,
 			CreationTimestamp: node.CreationTimestamp.Time,

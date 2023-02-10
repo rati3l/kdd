@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react"
-import PageHead from "../components/PageHead"
+import PageHead from "../components/commons/PageHead"
 import { Box } from "@mui/system";
 import { Alert, Card, CardContent, Chip, CircularProgress, Collapse, Grid, IconButton, Paper, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
 import { Navigate, useParams } from "react-router-dom";
@@ -8,9 +8,10 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import axios from "axios";
 import filesize from "file-size";
 import moment from "moment";
-import SectionHead from "../components/SectionHead";
-import MemChart, { LimitMemory, RequestMemory } from "../components/MemChart";
-import CpuChart, { LimitCPU, RequestCPU } from "../components/CpuChart";
+import SectionHead from "../components/commons/SectionHead";
+import MemChart, { LimitMemory, RequestMemory } from "../components/charts/MemChart";
+import CpuChart, { LimitCPU, RequestCPU } from "../components/charts/CpuChart";
+import WorkloadInfoBox from "../components/infobox/WorkloadInfoBox";
 
 type Props = {
     refreshIntervalMS: number;
@@ -21,7 +22,7 @@ function Row(props: { row: any }) {
     const [open, setOpen] = React.useState(false);
 
     const renderStatusChip = (status: string) => {
-        return <Chip variant="outlined" label={status} size="small" color={(status === "Running" ? "success" : "error")} sx={{ mr: 1 }} />
+        return <Chip variant="outlined" label={status} size="small" color={(status === "Running" || status === "Succeeded" ? "success" : "error")} sx={{ mr: 1 }} />
     }
 
     return (
@@ -104,6 +105,8 @@ const checkWorkloadType = (workloadType: string | undefined) => {
         case "deployments":
         case "statefulsets":
         case "daemonsets":
+        case "cronjobs":
+        case "jobs":
             return true
         default:
             return false
@@ -118,40 +121,13 @@ const getHeadlineByWorkloadType = (workloadType: string | undefined) => {
             return "Statefulset"
         case "daemonsets":
             return "Daemonset"
+        case "jobs":
+            return "Job"
+        case "cronjobs":
+            return "Cronjob"
         default:
             return ""
     }
-}
-
-const renderStatusByWorkloadType = (workloadType: string | undefined, workload: any) => {
-    switch (workloadType) {
-        case "daemonsets":
-        case "deployments":
-            return (<React.Fragment><b>Ready/Desired: </b> {workload.status.desired} / {workload.status.ready}</React.Fragment>)
-        case "statefulsets":
-            return (<React.Fragment><b>Ready/Replicas: </b> {workload.status.ready} / {workload.status.replicas}</React.Fragment>)
-        default:
-            return <React.Fragment />
-    }
-}
-
-const getPodStatusBasedOnWorkloadType = (workloadType: string | undefined, workload: any) => {
-    switch (workloadType) {
-        case "daemonsets":
-        case "deployments":
-            if (workload.status.ready !== workload.status.desired) {
-                return "loading"
-            } else {
-                return "running"
-            }
-        case "statefulsets":
-            if (workload.status.ready !== workload.status.replicas) {
-                return "loading"
-            } else {
-                return "running"
-            }
-    }
-
 }
 
 function Workload(props: Props) {
@@ -186,7 +162,6 @@ function Workload(props: Props) {
             const limitsC: LimitCPU[] = []
 
             getWorkload().then(data => {
-                data.workload.status.message = getPodStatusBasedOnWorkloadType(workloadType, data.workload)
                 const pods = data.pods.map((p: any) => {
                     p.workload_info.containers = p.workload_info.containers.map((c: any) => {
 
@@ -290,32 +265,7 @@ function Workload(props: Props) {
     return <React.Fragment>
         <PageHead title={`${getHeadlineByWorkloadType(workloadType)} ${paramName}`} />
         <Box>
-            {loading ? <CircularProgress color="primary" /> : <div>
-                <Box mb={1}>
-                    <b>Status: </b> {workload.status.message === "loading" ? <Chip variant="outlined" label={workload.status.message} size="small" color="warning" /> : <Chip variant="outlined" label={workload.status.message} size="small" color="success" />}
-                </Box>
-                <Box mb={1}>
-                    <b>Labels: </b> {Object.keys(workload.workload_info.labels || {}).map((key) => {
-                        return <Chip variant="filled" label={`${key}=${workload.workload_info.labels[key]}`} size="small" key={key} color="primary" sx={{ mr: 1 }} />
-                    })}
-                </Box>
-                <Box mb={1}>
-                    <b>Annotations: </b>{Object.keys(workload.workload_info.annotations || {}).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
-                        return <Chip variant="filled" label={`${key}=${workload.workload_info.annotations[key]}`} size="small" key={key} color="secondary" sx={{ mr: 1 }} />
-                    })}
-                </Box>
-                <Box mb={1}>
-                    <b>Selector: </b>{Object.keys(workload.workload_info.selector).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
-                        return <Chip variant="filled" label={`${key}=${workload.workload_info.selector[key]}`} size="small" key={key} color="secondary" sx={{ mr: 1 }} />
-                    })}
-                </Box>
-                <Box mb={1}>
-                    {renderStatusByWorkloadType(workloadType, workload)}
-                </Box>
-                <Box mb={1}>
-                    <b>Creation Timestamp: </b> {moment(workload.workload_info.creation_date).format("YYYY-MM-DD HH:mm")} <Chip variant="outlined" color="secondary" label={moment(workload.workload_info.creation_date).fromNow()} size="small"></Chip>
-                </Box>
-            </div>}
+            {loading ? <CircularProgress color="primary" /> : <WorkloadInfoBox workload={workload} />}
         </Box>
         <SectionHead title="Metrics" />
         <Box>

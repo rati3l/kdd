@@ -1,16 +1,15 @@
-package persistence_test
+package models
 
 import (
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.com/patrick.erber/kdd/internal/models"
 )
 
 func TestReduceMetrics(t *testing.T) {
 
-	metrics := []models.PodContainerMetric{
+	metrics := []PodContainerMetric{
 		{
 			PodName:           "a",
 			ContainerName:     "a",
@@ -53,7 +52,7 @@ func TestReduceMetrics(t *testing.T) {
 		},
 	}
 
-	result := models.ReduceMetrics(metrics, time.Minute*5)
+	result := ReduceMetrics(metrics, time.Minute*5)
 	assert.Len(t, result, 2)
 	assert.Equal(t, int64(20), result[0].CPUUsage)
 	assert.Equal(t, int64(20), result[0].MemoryUsage)

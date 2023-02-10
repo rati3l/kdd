@@ -1,4 +1,4 @@
-package persistence_test
+package persistence
 
 import (
 	"fmt"
@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/patrick.erber/kdd/internal/models"
-	"gitlab.com/patrick.erber/kdd/internal/persistence"
 )
 
 func CompareStringMap(a, b map[string]string) bool {
@@ -141,10 +140,11 @@ func CompareContainers(a []models.Container, b []models.Container) bool {
 	return true
 }
 
-func setupPersistenceTestSuite(t *testing.T) (*persistence.DataStore, func(t *testing.T)) {
+func setupPersistenceTestSuite(t *testing.T) (*DataStore, func(t *testing.T)) {
 	log.Println("setup persistence test suite")
-	filename := "../data/test_data.sqlite"
-	ds, err := persistence.NewSQLiteDataStore(filename)
+	// TODO: check current path and calculate absolute path to root dir of the project
+	filename := "./data/test_data.sqlite"
+	ds, err := NewSQLiteDataStore(filename)
 	if err != nil {
 		assert.FailNow(t, fmt.Sprintf("error occurred during initalization of the sqlite database %v", err))
 	}

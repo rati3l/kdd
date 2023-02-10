@@ -9,17 +9,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"gitlab.com/patrick.erber/kdd/internal/adapters"
 	"gitlab.com/patrick.erber/kdd/internal/models"
 	"gitlab.com/patrick.erber/kdd/internal/persistence"
-	"gitlab.com/patrick.erber/kdd/internal/services"
 )
 
 type API struct {
 	ds *persistence.DataStore
-	ka *services.KubeAPIAdapter
+	ka *adapters.KubeAPIAdapter
 }
 
-func NewAPI(ds *persistence.DataStore, ka *services.KubeAPIAdapter) *API {
+func NewAPI(ds *persistence.DataStore, ka *adapters.KubeAPIAdapter) *API {
 	return &API{
 		ds: ds,
 		ka: ka,
@@ -149,6 +149,42 @@ func (a *API) GetWorkloads(c *gin.Context) {
 	a.Response(c, http.StatusOK, SUCCESS, workloads)
 }
 
+func (a *API) GetJobs(c *gin.Context) {
+	collection, err := a.ka.GetJobs(c.Query("namespace"))
+	if err != nil {
+		a.Response(c, http.StatusInternalServerError, ERROR, nil)
+		return
+	}
+
+	// sorting result
+	result := collection.ToList()
+	workloads := make([]models.Workload, len(result))
+	for i := 0; i < len(result); i++ {
+		workloads[i] = result[i].(models.Workload)
+	}
+
+	sort.Sort(models.ByWorkloadName(workloads))
+	a.Response(c, http.StatusOK, SUCCESS, workloads)
+}
+
+func (a *API) GetCronjobs(c *gin.Context) {
+	collection, err := a.ka.GetCronjobs(c.Query("namespace"))
+	if err != nil {
+		a.Response(c, http.StatusInternalServerError, ERROR, nil)
+		return
+	}
+
+	// sorting result
+	result := collection.ToList()
+	workloads := make([]models.Workload, len(result))
+	for i := 0; i < len(result); i++ {
+		workloads[i] = result[i].(models.Workload)
+	}
+
+	sort.Sort(models.ByWorkloadName(workloads))
+	a.Response(c, http.StatusOK, SUCCESS, workloads)
+}
+
 func (a *API) GetDeployments(c *gin.Context) {
 	f := make(map[string]string)
 	f["workload_type"] = models.WORKLOAD_TYPE_DEPLOYMENT
@@ -263,6 +299,10 @@ func (a *API) GetWorkload(c *gin.Context) {
 		f["workload_type"] = models.WORKLOAD_TYPE_STATEFULSET
 	case "daemonsets":
 		f["workload_type"] = models.WORKLOAD_TYPE_DEAMONSET
+	case "jobs":
+		f["workload_type"] = models.WORKLOAD_TYPE_JOB
+	case "cronjobs":
+		f["workload_type"] = models.WORKLOAD_TYPE_CRONJOB
 	default:
 		zap.L().Error("invalid workload type passed!")
 		a.Response(c, http.StatusBadRequest, BAD_REQUEST, nil)
@@ -283,10 +323,22 @@ func (a *API) GetWorkload(c *gin.Context) {
 		return
 	}
 
-	workload, err := a.ds.GetWorkloadBy(f)
-	if err != nil {
-		a.Response(c, http.StatusInternalServerError, ERROR, nil)
-		return
+	var workload models.Workload
+
+	if f["workload_type"] != models.WORKLOAD_TYPE_JOB && f["workload_type"] != models.WORKLOAD_TYPE_CRONJOB {
+		w, err := a.ds.GetWorkloadBy(f)
+		if err != nil {
+			a.Response(c, http.StatusInternalServerError, ERROR, nil)
+			return
+		}
+		workload = w
+	} else {
+		w, err := a.ka.GetWorkloadBy(f)
+		if err != nil {
+			a.Response(c, http.StatusInternalServerError, ERROR, nil)
+			return
+		}
+		workload = w
 	}
 
 	podsCollection, err := a.ds.GetPodsForWorkload(workload)

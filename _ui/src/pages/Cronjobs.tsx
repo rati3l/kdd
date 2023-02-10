@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from "react"
 import PageHead from "../components/commons/PageHead"
 import axios from "axios";
-import { Box } from "@mui/system";
-import { Alert, CircularProgress, Snackbar } from "@mui/material";
-import DeploymentDataGrid from "../components/datagrids/DeploymentDataGrid";
+import { Alert, Box, CircularProgress, Snackbar } from "@mui/material";
+import CronjobDataGrid from "../components/datagrids/CronjobDataGrid";
 
 type Props = {
     refreshIntervalMS: number;
 }
 
-function Deployments(props: Props) {
+function Cronjobs(props: Props) {
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const [data, setData] = useState([])
@@ -19,17 +18,17 @@ function Deployments(props: Props) {
         setLoading(true)
 
         const fetchFunc = () => {
-            const getDeployments = async () => {
-                const { data } = await axios.get(`/api/v1/workloads/deployments`, { headers: { Accept: "application/json" } })
+            const getJobs = async () => {
+                const { data } = await axios.get(`/api/v1/workloads/cronjobs`, { headers: { Accept: "application/json" } })
                 return data.data
             }
 
-            getDeployments().then(data => {
+            getJobs().then(data => {
                 setData(data)
             }).catch((error) => {
                 if (axios.isAxiosError(error)) {
-                    console.error("failed to retrieve workload deployment information", error.message)
-                    setErrorMessage("failed to retrieve workload deployment information")
+                    console.error("failed to retrieve workload cronjobs information", error.message)
+                    setErrorMessage("failed to retrieve workload cronjobs information")
                 } else {
                     console.error("a unknown error occurred", error)
                     setErrorMessage("a unknown error occurred")
@@ -59,14 +58,15 @@ function Deployments(props: Props) {
 
 
     return <React.Fragment>
-        <PageHead title={"Workloads - Deployments"} />
+        <PageHead title={"Workloads - Cronjobs"} />
         <Box>
-            {loading ? <CircularProgress color="primary" /> : <DeploymentDataGrid rows={data} height="800px" />}
+            {loading ? <CircularProgress color="primary" /> : <CronjobDataGrid rows={data} height="800px" />}
         </Box>
+
         <Snackbar anchorOrigin={{ horizontal: "left", vertical: "bottom" }} open={errorMessage !== ""} autoHideDuration={6000}>
             <Alert severity="error">{errorMessage}</Alert>
         </Snackbar>
     </React.Fragment>
 }
 
-export default Deployments
+export default Cronjobs

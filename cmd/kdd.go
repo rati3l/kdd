@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gitlab.com/patrick.erber/kdd/internal/adapters"
 	"gitlab.com/patrick.erber/kdd/internal/collector"
 	"gitlab.com/patrick.erber/kdd/internal/controller"
 	"gitlab.com/patrick.erber/kdd/internal/persistence"
 	"gitlab.com/patrick.erber/kdd/internal/router"
-	"gitlab.com/patrick.erber/kdd/internal/services"
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -105,7 +105,7 @@ func main() {
 		ReadTimeout:    30 * time.Second,
 		WriteTimeout:   30 * time.Second,
 		MaxHeaderBytes: 1 << 20,
-		Handler:        router.InitRouter(ds, services.NewKubeAPIAdapter(&services.KubeAPIAdapterConfig{ClientSet: buildClientSet()})),
+		Handler:        router.InitRouter(ds, adapters.NewKubeAPIAdapter(&adapters.KubeAPIAdapterConfig{ClientSet: buildClientSet()})),
 	}
 
 	go func() {

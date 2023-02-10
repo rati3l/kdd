@@ -45,6 +45,7 @@ const renderStatus = (params: GridRenderCellParams<any>) => {
     const colorFunc = (type: string) => {
         switch (type.toLocaleLowerCase()) {
             case "running":
+            case "succeeded":
                 return "success"
             default:
                 return "error"
