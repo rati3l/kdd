@@ -1,4 +1,5 @@
-import { CronjobWorkload, DaemonSetWorkload, DeploymentWorkload, Namespace, PodWorkload, StatefulSetWorkload, Workload } from "../../../clients/response_types"
+import moment from "moment"
+import { CronjobWorkload, DaemonSetWorkload, DeploymentWorkload, JobStatus, JobWorkload, Namespace, PodWorkload, StatefulSetWorkload, Workload } from "../../../clients/response_types"
 import { WORKLOAD_TYPE_CRONJOBS, WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_JOBS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from "../../../constants"
 
 type DataGridTransformer = {
@@ -8,6 +9,7 @@ type DataGridTransformer = {
     transformDataForStatefulsetDataGrid: (statefulsets: Array<StatefulSetWorkload>) => Array<StatefulsetDataGrid>
     transformDataForPodDataGrid: (pods: Array<PodWorkload>) => Array<PodDataGrid>
     transformDataForCronjobDataGrid: (jobs: Array<CronjobWorkload>) => Array<CronjobDataGrid>
+    transformDataForJobDataGrid: (jobs: Array<JobWorkload>) => Array<JobDataGrid>
 }
 
 type WorkloadCounts = {
@@ -78,6 +80,22 @@ export type CronjobDataGrid = {
     selector: Record<string, string>,
     suspend: boolean,
     schedule: string,
+}
+
+export type JobDataGrid = {
+    workload_name: string,
+    namespace: string,
+    creation_date: string,
+    start_time: string,
+    completion_time: string,
+    annotations: Record<string, string>,
+    labels: Record<string, string>,
+    selector: Record<string, string>,
+    status: string,
+    status_active: number,
+    status_failed: number,
+    status_succeeded: number,
+    duration: moment.Duration | null,
 }
 
 export default function dataGridTransformers(): DataGridTransformer {
@@ -159,8 +177,8 @@ export default function dataGridTransformers(): DataGridTransformer {
                 namespace: row.workload_info.namespace,
                 creation_date: row.workload_info.creation_date,
                 annotations: row.workload_info.annotations || {},
-                labels: row.workload_info.labels,
-                selector: row.workload_info.selector,
+                labels: row.workload_info.labels || {},
+                selector: row.workload_info.selector || {},
                 status: (row.status.ready !== row.status.replicas) ? "loading" : "running",
                 status_ready: `${row.status.ready}/${row.status.replicas}`,
             }
@@ -177,8 +195,8 @@ export default function dataGridTransformers(): DataGridTransformer {
                 creation_date: row.workload_info.creation_date,
                 count_containers: row.workload_info.containers.length,
                 annotations: row.workload_info.annotations || {},
-                labels: row.workload_info.labels,
-                selector: row.workload_info.selector,
+                labels: row.workload_info.labels || {},
+                selector: row.workload_info.selector || {},
                 restarts: row.restarts,
                 status: row.status,
             }
@@ -205,6 +223,49 @@ export default function dataGridTransformers(): DataGridTransformer {
         })
     }
 
+    const transformDataForJobDataGrid = (jobs: Array<JobWorkload>): Array<JobDataGrid> => {
+        const statusAsString = (status: JobStatus) => {
+            if (status.active > 0) {
+                return "running"
+            }
+
+            if (status.failed > 0) {
+                return "failed"
+            }
+
+            if (status.succeeded > 0) {
+                return "succeeded"
+            }
+
+            return "unknown"
+        }
+
+        const calculateDuration = (status: JobStatus): moment.Duration | null => {
+            if (status.completion_time) {
+                return moment.duration(moment(status.completion_time).diff(moment(status.start_time)));
+            }
+            return null
+        }
+
+        return jobs.map((job: JobWorkload): JobDataGrid => {
+            return {
+                workload_name: job.workload_info.workload_name,
+                namespace: job.workload_info.namespace,
+                creation_date: job.workload_info.creation_date,
+                start_time: job.status.start_time,
+                completion_time: job.status.completion_time,
+                annotations: job.workload_info.annotations || {},
+                labels: job.workload_info.labels || {},
+                selector: job.workload_info.selector || {},
+                status: statusAsString(job.status),
+                status_active: job.status.active,
+                status_failed: job.status.failed,
+                status_succeeded: job.status.succeeded,
+                duration: calculateDuration(job.status)
+            }
+        })
+    }
+
     return {
         transformDataForNamespaceDataGrid,
         transformDataForDeploymentDataGrid,
@@ -212,5 +273,6 @@ export default function dataGridTransformers(): DataGridTransformer {
         transformDataForStatefulsetDataGrid,
         transformDataForPodDataGrid,
         transformDataForCronjobDataGrid,
+        transformDataForJobDataGrid,
     }
 }

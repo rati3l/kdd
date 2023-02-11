@@ -1,6 +1,6 @@
 import axios from "axios"
 import { KDD_BASE_URL } from "../config";
-import { CronjobWorkload, DaemonSetWorkload, DeploymentWorkload, Namespace, PodWorkload, StatefulSetWorkload, Workload } from "./response_types";
+import { CronjobWorkload, DaemonSetWorkload, DeploymentWorkload, JobWorkload, Namespace, PodWorkload, StatefulSetWorkload, Workload } from "./response_types";
 
 export type Client = {
     getNamespaces: () => Promise<Array<Namespace>>;
@@ -10,6 +10,7 @@ export type Client = {
     getStatefulsets: () => Promise<Array<StatefulSetWorkload>>;
     getPods: () => Promise<Array<PodWorkload>>;
     getCronjobs: ()=> Promise<Array<CronjobWorkload>>;
+    getJobs: ()=> Promise<Array<JobWorkload>>;
 }
 
 const client = (): Client => {
@@ -37,17 +38,22 @@ const client = (): Client => {
     }
 
     const getStatefulsets = async (): Promise<Array<StatefulSetWorkload>> => {
-        const { data } = await axios.get(`/api/v1/workloads/statefulsets`, { headers: headers })
+        const { data } = await axios.get(`/api/v1/workloads/statefulsets`, { headers })
         return data.data
     }
 
     const getPods = async (): Promise<Array<PodWorkload>> => {
-        const { data } = await axios.get(`/api/v1/workloads/pods`, { headers: headers })
+        const { data } = await axios.get(`/api/v1/workloads/pods`, { headers })
         return data.data
     }
 
     const getCronjobs = async (): Promise<Array<CronjobWorkload>> => {
-        const { data } = await axios.get(`/api/v1/workloads/cronjobs`, { headers: headers })
+        const { data } = await axios.get(`/api/v1/workloads/cronjobs`, { headers })
+        return data.data
+    }
+
+    const getJobs = async (): Promise<Array<JobWorkload>> => {
+        const { data } = await axios.get(`/api/v1/workloads/jobs`, { headers })
         return data.data
     }
 
@@ -59,6 +65,7 @@ const client = (): Client => {
         getStatefulsets,
         getPods,
         getCronjobs,
+        getJobs,
     }
 
     return c

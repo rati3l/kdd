@@ -1,26 +1,10 @@
 import { Chip, Link, Stack } from "@mui/material";
-import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import moment from "moment";
-import { styled } from '@mui/material/styles';
 import React from "react";
-
-const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
-    "& .MuiDataGrid-renderingZone": {
-        maxHeight: "none !important"
-    },
-    "& .MuiDataGrid-cell": {
-        lineHeight: "unset !important",
-        maxHeight: "none !important",
-        whiteSpace: "normal !important",
-        paddingTop: "5px",
-        paddingBottom: "5px",
-    },
-    "& .MuiDataGrid-row": {
-        maxHeight: "none !important"
-    },
-}));
-
-
+import { JobWorkload } from "../../clients/response_types";
+import StyledDataGrid from "./base/StyledDataGrid";
+import dataGridTransformers from "./transformers";
 
 const renderDate = () => {
     return (params: GridRenderCellParams<any>) => {
@@ -152,52 +136,12 @@ const columns: GridColDef[] = [
 ];
 
 type Props = {
-    rows: any[];
+    jobs: Array<JobWorkload>;
     height: string;
 }
 
 function JobDataGrid(props: Props) {
-    const flatten_rows: any = props.rows.map((row) => {
-
-        const statusToString = (status: any) => {
-            if (status.active > 0) {
-                return "running"
-            }
-
-            if (status.failed > 0) {
-                return "failed"
-            }
-
-            if (status.succeeded > 0) {
-                return "succeeded"
-            }
-        }
-
-        const calculate_duration = (status: any) => {
-            if (status.completion_time) {
-                return moment.duration(moment(status.completion_time).diff(moment(status.start_time)));
-            }
-
-            return null
-        }
-
-        return {
-            workload_name: row.workload_info.workload_name,
-            namespace: row.workload_info.namespace,
-            creation_date: row.workload_info.creation_date,
-            start_time: row.status.start_time,
-            completion_time: row.status.completion_time,
-            annotations: row.workload_info.annotations || {},
-            labels: row.workload_info.labels || {},
-            selector: row.workload_info.selector || {},
-            status: statusToString(row.status),
-            status_active: row.status.active,
-            status_failed: row.status.failed,
-            status_succeeded: row.status.succeeded,
-            duration: calculate_duration(row.status)
-        }
-    })
-    return <StyledDataGrid disableSelectionOnClick={true} getRowId={(row: any) => { return `${row.workload_name}_${row.namespace}` }} rows={flatten_rows} columns={columns} sx={{ height: props.height }} />
+    return <StyledDataGrid disableSelectionOnClick={true} getRowId={(row: any) => { return `${row.workload_name}_${row.namespace}` }} rows={dataGridTransformers().transformDataForJobDataGrid(props.jobs)} columns={columns} sx={{ height: props.height }} />
 }
 
 export default JobDataGrid
