@@ -12,6 +12,7 @@ import SectionHead from "../components/commons/SectionHead";
 import MemChart, { LimitMemory, RequestMemory } from "../components/charts/MemChart";
 import CpuChart, { LimitCPU, RequestCPU } from "../components/charts/CpuChart";
 import WorkloadInfoBox from "../components/infobox/WorkloadInfoBox";
+import { WORKLOAD_TYPE_CRONJOBS, WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_JOBS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from "../constants";
 
 type Props = {
     refreshIntervalMS: number;
@@ -101,12 +102,13 @@ function Row(props: { row: any }) {
 }
 
 const checkWorkloadType = (workloadType: string | undefined) => {
-    switch (workloadType) {
-        case "deployments":
-        case "statefulsets":
-        case "daemonsets":
-        case "cronjobs":
-        case "jobs":
+    switch (workloadType?.toLowerCase()) {
+        case WORKLOAD_TYPE_DEPLOYMENTS.toLowerCase():
+        case WORKLOAD_TYPE_DEAEMONSET.toLowerCase():
+        case WORKLOAD_TYPE_STATEFULSETS.toLowerCase():
+        case WORKLOAD_TYPE_CRONJOBS.toLowerCase():
+        case WORKLOAD_TYPE_JOBS.toLowerCase():
+        case WORKLOAD_TYPE_PODS.toLowerCase():
             return true
         default:
             return false
@@ -114,17 +116,19 @@ const checkWorkloadType = (workloadType: string | undefined) => {
 }
 
 const getHeadlineByWorkloadType = (workloadType: string | undefined) => {
-    switch (workloadType) {
-        case "deployments":
+    switch (workloadType?.toLowerCase()) {
+        case WORKLOAD_TYPE_DEPLOYMENTS.toLowerCase():
             return "Deployment"
-        case "statefulsets":
-            return "Statefulset"
-        case "daemonsets":
+        case WORKLOAD_TYPE_DEAEMONSET.toLowerCase():
             return "Daemonset"
-        case "jobs":
-            return "Job"
-        case "cronjobs":
+        case WORKLOAD_TYPE_STATEFULSETS.toLowerCase():
+            return "Statefulset"
+        case WORKLOAD_TYPE_CRONJOBS.toLowerCase():
             return "Cronjob"
+        case WORKLOAD_TYPE_JOBS.toLowerCase():
+            return "Job"
+        case WORKLOAD_TYPE_PODS.toLowerCase():
+            return "Pod"
         default:
             return ""
     }
@@ -149,7 +153,7 @@ function Workload(props: Props) {
         setLoading(true)
         const fetchFunc = (namespace: string | undefined, name: string | undefined) => {
             const getWorkload = async () => {
-                const { data } = await axios.get(`/api/v1/workloads/${workloadType}/${namespace}/${name}`, { headers: { Accept: "application/json" } })
+                const { data } = await axios.get(`/api/v1/workloads/${workloadType}s/${namespace}/${name}`, { headers: { Accept: "application/json" } })
                 return data.data
             }
 
@@ -241,10 +245,10 @@ function Workload(props: Props) {
             const interval: any = setInterval(() => {
                 fetchFunc(paramNamespace, paramName)
             }, props.refreshIntervalMS)
-    
+
             return () => {
                 clearInterval(interval)
-            }    
+            }
         }
 
     }, [props.refreshIntervalMS, paramNamespace, paramName, workloadType]);

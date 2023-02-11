@@ -8,10 +8,9 @@ import moment from "moment";
 import FailedCountCard from "../components/infocards/FailedCountCard";
 import SectionHead from "../components/commons/SectionHead";
 import EventDataGrid from "../components/datagrids/EventDataGrid";
-import DeploymentDataGrid from "../components/datagrids/DeploymentDataGrid";
-import StatefulSeteDataGrid from "../components/datagrids/StatefulSetDataGrid";
-import DaemonSetDataGrid from "../components/datagrids/DaemonSetDataGrid";
 import { Event } from "../clients/response_types";
+import WorkloadDataGrid from "../components/datagrids/WorkloadDataGrid";
+import { WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_STATEFULSETS } from "../constants";
 
 type Props = {
     refreshIntervalMS: number;
@@ -55,27 +54,27 @@ interface TabPanelProps {
     children?: React.ReactNode;
     index: number;
     value: number;
-  }
+}
 
 function TabPanel(props: TabPanelProps) {
     const { children, value, index, ...other } = props;
-  
+
     return (
-      <div
-        role="tabpanel"
-        hidden={value !== index}
-        id={`simple-tabpanel-${index}`}
-        aria-labelledby={`simple-tab-${index}`}
-        {...other}
-      >
-        {value === index && (
-          <Box sx={{ p: 3 }}>
-            {children}
-          </Box>
-        )}
-      </div>
+        <div
+            role="tabpanel"
+            hidden={value !== index}
+            id={`simple-tabpanel-${index}`}
+            aria-labelledby={`simple-tab-${index}`}
+            {...other}
+        >
+            {value === index && (
+                <Box sx={{ p: 3 }}>
+                    {children}
+                </Box>
+            )}
+        </div>
     );
-  }
+}
 
 function Namespace(props: Props) {
     const [loading, setLoading] = useState(true)
@@ -96,7 +95,7 @@ function Namespace(props: Props) {
     const [value, setValue] = React.useState(0);
 
     const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-      setValue(newValue);
+        setValue(newValue);
     };
 
     const paramName = useParams()["name"]
@@ -118,7 +117,7 @@ function Namespace(props: Props) {
                     "Daemonset": { total: 0, failed: 0 },
                     "Statefulset": { total: 0, failed: 0 },
                 }
-                const newWorkloads : IWorkloads = {
+                const newWorkloads: IWorkloads = {
                     "Deployment": [],
                     "Daemonset": [],
                     "Statefulset": [],
@@ -216,13 +215,13 @@ function Namespace(props: Props) {
                     </Tabs>
                 </Box>
                 <TabPanel value={value} index={0}>
-                    <DeploymentDataGrid deployments={workloads["Deployment"]} height="600px" />
+                    <WorkloadDataGrid workloadType={WORKLOAD_TYPE_DEPLOYMENTS} workloads={workloads["Deployment"]} height="600px" />
                 </TabPanel>
                 <TabPanel value={value} index={1}>
-                    <DaemonSetDataGrid daemonsets={workloads["Daemonset"]} height="600px" />
+                    <WorkloadDataGrid workloadType={WORKLOAD_TYPE_DEAEMONSET} workloads={workloads["Daemonset"]} height="600px" />
                 </TabPanel>
                 <TabPanel value={value} index={2}>
-                    <StatefulSeteDataGrid statefulsets={workloads["Statefulset"]} height="600px" />
+                    <WorkloadDataGrid workloadType={WORKLOAD_TYPE_STATEFULSETS} workloads={workloads["Statefulset"]} height="600px" />
                 </TabPanel>
             </div>}
         </Box>

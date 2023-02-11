@@ -7,15 +7,9 @@ import {
 } from 'react-router-dom';
 import Namespaces from "./pages/Namespaces";
 import Namespace from "./pages/Namespace";
-import Deployments from "./pages/Deployments";
-import StatefulSets from "./pages/Statefulsets";
-import DaemonSets from "./pages/Daemonsets";
-import Workload from "./pages/Workload";
-import Pods from "./pages/Pods";
-import Pod from "./pages/Pod";
-import Jobs from "./pages/Jobs";
 import Nodes from "./pages/Nodes";
-import Cronjobs from "./pages/Cronjobs";
+import Workloads from "./pages/Workloads";
+import Workload from "./pages/Workload";
 
 const LOCAL_STORAGE_REFRESH_INTERVAL_KEY = "refreshIntervalMS"
 const LOCAL_STORAGE_NAV_OPEN_KEY = "navopen"
@@ -60,14 +54,8 @@ function App() {
             <Route path="/ui" element={<Nodes refreshIntervalMS={refreshIntervalMS} />}></Route>  
             <Route path="/ui/namespaces" element={<Namespaces refreshIntervalMS={refreshIntervalMS} />}></Route>
             <Route path="/ui/namespaces/:name" element={<Namespace refreshIntervalMS={refreshIntervalMS} />}></Route>
-            <Route path="/ui/workloads/deployments" element={<Deployments refreshIntervalMS={refreshIntervalMS} />}></Route>
-            <Route path="/ui/workloads/pods/:namespace/:name" element={<Pod refreshIntervalMS={refreshIntervalMS} />}></Route>
+            <Route path="/ui/workloads/:workloadType" element={<Workloads refreshIntervalMS={refreshIntervalMS} />}></Route>
             <Route path="/ui/workloads/:workloadType/:namespace/:name" element={<Workload refreshIntervalMS={refreshIntervalMS} />}></Route>
-            <Route path="/ui/workloads/statefulsets" element={<StatefulSets refreshIntervalMS={refreshIntervalMS} />}></Route>
-            <Route path="/ui/workloads/daemonsets" element={<DaemonSets refreshIntervalMS={refreshIntervalMS} />}></Route>
-            <Route path="/ui/workloads/pods" element={<Pods refreshIntervalMS={refreshIntervalMS} />}></Route>
-            <Route path="/ui/workloads/jobs" element={<Jobs refreshIntervalMS={refreshIntervalMS} />}></Route>
-            <Route path="/ui/workloads/cronjobs" element={<Cronjobs refreshIntervalMS={refreshIntervalMS} />}></Route>
           </Routes>
         </PageContainer>
       </Router>

@@ -338,6 +338,27 @@ const getNamespaceDataGridColumnDefs = (): GridColDef[] => {
     ];
 }
 
+const byWorkloadType = (workloadType: string): GridColDef[] => {
+            switch (workloadType) {
+            case WORKLOAD_TYPE_DEPLOYMENTS:
+                return getDeploymentDataGridColumnDefs()
+            case WORKLOAD_TYPE_DEAEMONSET:
+                return getDaemonsetDataGridColumnDefs()
+            case WORKLOAD_TYPE_STATEFULSETS:
+                return getStatefulsetDataGridColumnDefs()
+            case WORKLOAD_TYPE_CRONJOBS:
+                return getCronjobDataGridColumnDefs()
+            case WORKLOAD_TYPE_JOBS:
+                return getJobDataGridColumnDefs()
+            case WORKLOAD_TYPE_PODS:
+                return getPodDataGridColumnDefs()
+        }
+
+        console.error(`invalid workload type passed to column definitions ${workloadType}`)
+        return []
+
+}
+
 type ColumnDefs = {
     forDeployments: () => GridColDef[];
     forDeamonsets: () => GridColDef[];
@@ -348,6 +369,7 @@ type ColumnDefs = {
     forEvents: () => GridColDef[];
     forNodes: () => GridColDef[];
     forNamespaces: () => GridColDef[];
+    byWorkloadType: (workloadType : string) => GridColDef[];
 }
 
 export default function columnDefs(): ColumnDefs {
@@ -361,6 +383,7 @@ export default function columnDefs(): ColumnDefs {
         forEvents: getEventDataGridColumnDefs,
         forNodes: getNodeDataGridColumnDefs,
         forNamespaces: getNamespaceDataGridColumnDefs,
+        byWorkloadType: byWorkloadType,
     }
 
     return w

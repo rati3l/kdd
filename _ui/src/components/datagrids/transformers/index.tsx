@@ -12,6 +12,7 @@ type DataGridTransformer = {
     transformDataForJobDataGrid: (jobs: Array<JobWorkload>) => Array<JobDataGrid>
     transformDataForNodeDataGrid: (nodes: Array<Node>) => Array<NodeDataGrid>
     transformDataForEventDataGrid: (nodes: Array<Event>) => Array<EventDataGrid>
+    transformDataForWorkloadType: (workloadType: string | undefined, workloads: Array<Workload>) => Array<WorkloadDataGrid>
 }
 
 type WorkloadCounts = {
@@ -23,6 +24,8 @@ type WorkloadCounts = {
 export type NodeDataGrid = Node
 export type EventDataGrid = Event
 export type NamespaceGridData = Namespace & { workloads: WorkloadCounts }
+
+export type WorkloadDataGrid = DeploymentDataGrid | DaemonsetDataGrid | StatefulsetDataGrid | PodDataGrid | CronjobDataGrid | JobDataGrid
 export type DeploymentDataGrid = {
     workload_name: string,
     namespace: string,
@@ -278,6 +281,26 @@ export default function dataGridTransformers(): DataGridTransformer {
         return nodes
     }
 
+    const transformDataForWorkloadType = (workloadType: string | undefined, workloads: Array<Workload>): Array<WorkloadDataGrid> => {
+        switch (workloadType) {
+            case WORKLOAD_TYPE_DEPLOYMENTS:
+                return transformDataForDeploymentDataGrid(workloads as Array<DeploymentWorkload>)
+            case WORKLOAD_TYPE_DEAEMONSET:
+                return transformDataForDaemonsetDataGrid(workloads as Array<DaemonSetWorkload>)
+            case WORKLOAD_TYPE_STATEFULSETS:
+                return transformDataForStatefulsetDataGrid(workloads as Array<StatefulSetWorkload>)
+            case WORKLOAD_TYPE_CRONJOBS:
+                return transformDataForCronjobDataGrid(workloads as Array<CronjobWorkload>)
+            case WORKLOAD_TYPE_JOBS:
+                return transformDataForJobDataGrid(workloads as Array<JobWorkload>)
+            case WORKLOAD_TYPE_PODS:
+                return transformDataForPodDataGrid(workloads as Array<PodWorkload>)
+        }
+
+        console.error(`invalid type passed to transform function ${workloadType}`)
+        return []
+    }
+
     return {
         transformDataForNamespaceDataGrid,
         transformDataForDeploymentDataGrid,
@@ -287,6 +310,7 @@ export default function dataGridTransformers(): DataGridTransformer {
         transformDataForCronjobDataGrid,
         transformDataForJobDataGrid,
         transformDataForNodeDataGrid,
-        transformDataForEventDataGrid
+        transformDataForEventDataGrid,
+        transformDataForWorkloadType
     }
 }

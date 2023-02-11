@@ -1,10 +1,12 @@
 import axios from "axios"
 import { KDD_BASE_URL } from "../config";
+import { WORKLOAD_TYPE_CRONJOBS, WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_JOBS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from "../constants";
 import { CronjobWorkload, DaemonSetWorkload, DeploymentWorkload, JobWorkload, Namespace, PodWorkload, StatefulSetWorkload, Workload, Node } from "./response_types";
 
 export type Client = {
     getNamespaces: () => Promise<Array<Namespace>>;
     getWorkloads: () => Promise<Array<Workload>>;
+    getWorkloadsByType: (type: string | undefined) => Promise<Array<Workload>>;
     getDeployments: () => Promise<Array<DeploymentWorkload>>;
     getDaemonsets: () => Promise<Array<DaemonSetWorkload>>;
     getStatefulsets: () => Promise<Array<StatefulSetWorkload>>;
@@ -26,6 +28,25 @@ const client = (): Client => {
     const getWorkloads = async (): Promise<Array<Workload>> => {
         const { data } = await axios.get("/api/v1/workloads", { headers })
         return data.data
+    }
+
+    const getWorkloadsByType = async (type: string | undefined): Promise<Array<Workload>> => {
+        switch (type) {
+            case WORKLOAD_TYPE_DEPLOYMENTS:
+                return getDeployments()
+            case WORKLOAD_TYPE_DEAEMONSET:
+                return getDaemonsets()
+            case WORKLOAD_TYPE_STATEFULSETS:
+                return getStatefulsets()
+            case WORKLOAD_TYPE_CRONJOBS:
+                return getCronjobs()
+            case WORKLOAD_TYPE_JOBS:
+                return getJobs()
+            case WORKLOAD_TYPE_PODS:
+                return getPods()
+            default:
+                return Promise.reject(new Error(`Passed workload type could not be found ${type}`))
+        }
     }
 
     const getDeployments = async (): Promise<Array<DeploymentWorkload>> => {
@@ -73,6 +94,7 @@ const client = (): Client => {
         getCronjobs,
         getJobs,
         getNodes,
+        getWorkloadsByType,
     }
 
     return c

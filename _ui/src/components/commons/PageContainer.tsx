@@ -6,6 +6,7 @@ import { CssBaseline, Divider, Drawer, FormControl, IconButton, InputLabel, List
 import { styled, useTheme } from '@mui/material/styles';
 import { Box } from '@mui/system';
 import NavListItem from './NavListItem';
+import { WORKLOAD_TYPE_CRONJOBS, WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_JOBS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from '../../constants';
 
 const drawerWidth = 240;
 
@@ -140,12 +141,12 @@ function PageContainer(props: Props) {
                     <ListItem>
                         <ListItemText disableTypography primary={<Typography variant="body2" style={{ fontWeight: "bold" }}>Workloads</Typography>} />
                     </ListItem>
-                    <NavListItem to="/ui/workloads/deployments" name="Deployments" end={false} />
-                    <NavListItem to="/ui/workloads/statefulsets" name="Statefulsets" end={false} />
-                    <NavListItem to="/ui/workloads/daemonsets" name="Daemonsets" end={false} />
-                    <NavListItem to="/ui/workloads/cronjobs" name="Cronjobs" end={false} />
-                    <NavListItem to="/ui/workloads/jobs" name="Jobs" end={false} />
-                    <NavListItem to="/ui/workloads/pods" name="Pods" end={false} />
+                    <NavListItem to={`/ui/workloads/${WORKLOAD_TYPE_DEPLOYMENTS.toLocaleLowerCase()}`} name="Deployments" end={false} />
+                    <NavListItem to={`/ui/workloads/${WORKLOAD_TYPE_STATEFULSETS.toLocaleLowerCase()}`} name="Statefulsets" end={false} />
+                    <NavListItem to={`/ui/workloads/${WORKLOAD_TYPE_DEAEMONSET.toLocaleLowerCase()}`} name="Daemonsets" end={false} />
+                    <NavListItem to={`/ui/workloads/${WORKLOAD_TYPE_CRONJOBS.toLocaleLowerCase()}`} name="Cronjobs" end={false} />
+                    <NavListItem to={`/ui/workloads/${WORKLOAD_TYPE_JOBS.toLocaleLowerCase()}`} name="Jobs" end={false} />
+                    <NavListItem to={`/ui/workloads/${WORKLOAD_TYPE_PODS.toLocaleLowerCase()}`} name="Pods" end={false} />
                 </List>
             </Drawer>
             <Main open={props.navOpen}>
