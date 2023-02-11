@@ -1,5 +1,5 @@
 import moment from "moment"
-import { CronjobWorkload, DaemonSetWorkload, DeploymentWorkload, JobStatus, JobWorkload, Namespace, PodWorkload, StatefulSetWorkload, Workload } from "../../../clients/response_types"
+import { CronjobWorkload, DaemonSetWorkload, DeploymentWorkload, JobStatus, JobWorkload, Namespace, Node, PodWorkload, StatefulSetWorkload, Workload } from "../../../clients/response_types"
 import { WORKLOAD_TYPE_CRONJOBS, WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_JOBS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from "../../../constants"
 
 type DataGridTransformer = {
@@ -10,6 +10,7 @@ type DataGridTransformer = {
     transformDataForPodDataGrid: (pods: Array<PodWorkload>) => Array<PodDataGrid>
     transformDataForCronjobDataGrid: (jobs: Array<CronjobWorkload>) => Array<CronjobDataGrid>
     transformDataForJobDataGrid: (jobs: Array<JobWorkload>) => Array<JobDataGrid>
+    transformDataForNodeDataGrid: (nodes: Array<Node>) => Array<NodeDataGrid>
 }
 
 type WorkloadCounts = {
@@ -18,6 +19,7 @@ type WorkloadCounts = {
     daemonsets: number
 }
 
+export type NodeDataGrid = Node
 export type NamespaceGridData = Namespace & { workloads: WorkloadCounts }
 export type DeploymentDataGrid = {
     workload_name: string,
@@ -266,6 +268,10 @@ export default function dataGridTransformers(): DataGridTransformer {
         })
     }
 
+    const transformDataForNodeDataGrid = (nodes: Array<Node>): Array<NodeDataGrid> => {
+        return nodes
+    }
+
     return {
         transformDataForNamespaceDataGrid,
         transformDataForDeploymentDataGrid,
@@ -274,5 +280,6 @@ export default function dataGridTransformers(): DataGridTransformer {
         transformDataForPodDataGrid,
         transformDataForCronjobDataGrid,
         transformDataForJobDataGrid,
+        transformDataForNodeDataGrid,
     }
 }

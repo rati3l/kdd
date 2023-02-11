@@ -1,25 +1,11 @@
 import { Chip } from "@mui/material";
 import { Stack } from "@mui/system";
-import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import moment from "moment";
-import { styled } from '@mui/material/styles';
 import filesize from "file-size";
-
-const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
-    "& .MuiDataGrid-renderingZone": {
-        maxHeight: "none !important"
-    },
-    "& .MuiDataGrid-cell": {
-        lineHeight: "unset !important",
-        maxHeight: "none !important",
-        whiteSpace: "normal !important",
-        paddingTop: "5px",
-        paddingBottom: "5px",
-    },
-    "& .MuiDataGrid-row": {
-        maxHeight: "none !important"
-    },
-}));
+import StyledDataGrid from "./base/StyledDataGrid";
+import { Node } from "../../clients/response_types";
+import dataGridTransformers from "./transformers";
 
 const renderChips = (color: any) => {
     return (params: GridRenderCellParams<any>) => {
@@ -120,7 +106,7 @@ const columns: GridColDef[] = [
         disableColumnMenu: true,
         filterable: false,
         sortable: false,
-        hideable: true, 
+        hideable: true,
         hide: true,
         minWidth: 400,
         renderCell: renderChips("secondary"),
@@ -139,11 +125,11 @@ const columns: GridColDef[] = [
 ];
 
 type Props = {
-    rows: any[];
+    nodes: Array<Node>;
 }
 
 function NodesDataGrid(props: Props) {
-    return <StyledDataGrid disableSelectionOnClick={true} getRowId={(row: any) => { return row.name }} rows={props.rows} columns={columns} sx={{ height: "800px" }} />
+    return <StyledDataGrid disableSelectionOnClick={true} getRowId={(row: any) => { return row.name }} rows={dataGridTransformers().transformDataForNodeDataGrid(props.nodes)} columns={columns} sx={{ height: "800px" }} />
 }
 
 export default NodesDataGrid

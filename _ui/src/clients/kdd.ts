@@ -1,6 +1,6 @@
 import axios from "axios"
 import { KDD_BASE_URL } from "../config";
-import { CronjobWorkload, DaemonSetWorkload, DeploymentWorkload, JobWorkload, Namespace, PodWorkload, StatefulSetWorkload, Workload } from "./response_types";
+import { CronjobWorkload, DaemonSetWorkload, DeploymentWorkload, JobWorkload, Namespace, PodWorkload, StatefulSetWorkload, Workload, Node } from "./response_types";
 
 export type Client = {
     getNamespaces: () => Promise<Array<Namespace>>;
@@ -9,8 +9,9 @@ export type Client = {
     getDaemonsets: () => Promise<Array<DaemonSetWorkload>>;
     getStatefulsets: () => Promise<Array<StatefulSetWorkload>>;
     getPods: () => Promise<Array<PodWorkload>>;
-    getCronjobs: ()=> Promise<Array<CronjobWorkload>>;
-    getJobs: ()=> Promise<Array<JobWorkload>>;
+    getCronjobs: () => Promise<Array<CronjobWorkload>>;
+    getJobs: () => Promise<Array<JobWorkload>>;
+    getNodes: () => Promise<Array<Node>>;
 }
 
 const client = (): Client => {
@@ -57,6 +58,11 @@ const client = (): Client => {
         return data.data
     }
 
+    const getNodes = async (): Promise<Array<Node>> => {
+        const { data } = await axios.get(`/api/v1/nodes`, { headers })
+        return data.data
+    }
+
     const c: Client = {
         getNamespaces,
         getWorkloads,
@@ -66,6 +72,7 @@ const client = (): Client => {
         getPods,
         getCronjobs,
         getJobs,
+        getNodes,
     }
 
     return c
