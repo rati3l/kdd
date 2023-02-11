@@ -46,14 +46,19 @@ function Workloads(props: Props) {
         }
 
         // fetching data initially
-        load()
-        const interval: any = setInterval(() => {
+        if (workloadType !== "") {
             load()
-        }, props.refreshIntervalMS)
 
-        return () => {
-            clearInterval(interval)
+            const interval: any = setInterval(() => {
+                load()
+            }, props.refreshIntervalMS)
+
+            return () => {
+                clearInterval(interval)
+            }
         }
+
+        return () => { }
 
     }, [props.refreshIntervalMS, workloadType]);
 
