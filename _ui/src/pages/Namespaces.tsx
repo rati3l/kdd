@@ -13,17 +13,17 @@ type Props = {
 
 function Namespaces(props: Props) {
     const [loading, setLoading] = useState<boolean>(true)
-    const [errorMessage, setErrrorMessage] = useState<string>("")
+    const [errorMessage, setErrorMessage] = useState<string>("")
     const [workloads, setWorkloads] = useState<Array<Workload>>([])
     const [namespaces, setNamespaces] = useState<Array<Namespace>>([])
 
     const checkError = (error: any) => {
         if (axios.isAxiosError(error)) {
-            console.error("failed to retrieve namespace information", error.message)
-            setErrrorMessage("failed to retrieve namespace information")
+            console.error("failed to retrieve information", error.message)
+            setErrorMessage("failed to retrieve information")
         } else {
             console.error("a unknown error occurred", error)
-            setErrrorMessage("a unknown error occurred")
+            setErrorMessage("a unknown error occurred")
         }
     }
 

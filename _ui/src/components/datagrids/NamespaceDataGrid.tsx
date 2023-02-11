@@ -98,8 +98,7 @@ function NamespaceDataGrid(props: Props) {
     const workloads: Array<Workload> = props.workloads
     const namespaces: Array<Namespace> = props.namespaces
 
-    const rows = dataGridTransformers().transformDataForNamespaceDataGrid(namespaces, workloads)
-    return <StyledDataGrid disableSelectionOnClick={true} getRowId={(row: any) => { return row.name }} rows={rows} columns={columns} sx={{ height: "800px" }} />
+    return <StyledDataGrid disableSelectionOnClick={true} getRowId={(row: any) => { return row.name }} rows={dataGridTransformers().transformDataForNamespaceDataGrid(namespaces, workloads)} columns={columns} sx={{ height: "800px" }} />
 }
 
 export default NamespaceDataGrid

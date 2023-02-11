@@ -1,10 +1,11 @@
 import axios from "axios"
 import { KDD_BASE_URL } from "../config";
-import { Namespace, Workload } from "./response_types";
+import { DeploymentWorkload, Namespace, Workload } from "./response_types";
 
 export type Client = {
     getNamespaces: () => Promise<Array<Namespace>>;
     getWorkloads: () => Promise<Array<Workload>>;
+    getDeployments: () => Promise<Array<DeploymentWorkload>>;
 }
 
 const client = (): Client => {
@@ -21,9 +22,15 @@ const client = (): Client => {
         return data.data
     }
 
+    const getDeployments = async ():Promise<Array<DeploymentWorkload>> => {
+        const { data } = await axios.get(`/api/v1/workloads/deployments`, { headers })
+        return data.data
+    }
+
     const c: Client = {
         getNamespaces,
-        getWorkloads
+        getWorkloads, 
+        getDeployments,
     }
 
     return c
