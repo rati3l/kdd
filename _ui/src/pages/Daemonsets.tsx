@@ -4,45 +4,47 @@ import axios from "axios";
 import { Box } from "@mui/system";
 import { Alert, CircularProgress, Snackbar } from "@mui/material";
 import DaemonSetDataGrid from "../components/datagrids/DaemonSetDataGrid";
+import { DaemonSetWorkload } from "../clients/response_types";
+import client from "../clients/kdd";
 
 type Props = {
     refreshIntervalMS: number;
 }
 
 function DaemonSets(props: Props) {
-    const [loading, setLoading] = useState(true)
-    const [errorMessage, setErrorMessage] = useState("")
-    const [data, setData] = useState([])
+    const [loading, setLoading] = useState<boolean>(true)
+    const [errorMessage, setErrorMessage] = useState<string>("")
+    const [daemonsets, setDaemonsets] = useState<Array<DaemonSetWorkload>>([])
+
+    const checkError = (error: any) => {
+        if (axios.isAxiosError(error)) {
+            console.error("failed to retrieve information", error.message)
+            setErrorMessage("failed to retrieve information")
+        } else {
+            console.error("a unknown error occurred", error)
+            setErrorMessage("a unknown error occurred")
+        }
+    }
+
+    const finishLoading = () => {
+        setLoading(false)
+    }
 
     useEffect(() => {
         setLoading(true)
 
-        const fetchFunc = () => {
-            const getDaemonSets = async () => {
-                const { data } = await axios.get(`/api/v1/workloads/daemonsets`, { headers: { Accept: "application/json" } })
-                return data.data
-            }
-
-            getDaemonSets().then(data => {
-                setData(data)
-            }).catch((error) => {
-                if (axios.isAxiosError(error)) {
-                    console.error("failed to retrieve workload daemonset information", error.message)
-                    setErrorMessage("failed to retrieve workload daemonset information")
-                } else {
-                    console.error("a unknown error occurred", error)
-                    setErrorMessage("a unknown error occurred")
-                }
-            }).finally(() => {
-                setLoading(false)
+        const load = () => {
+            client().getDaemonsets().then((daemonsets: Array<DaemonSetWorkload>) => {
+                setDaemonsets(daemonsets)
             })
+                .catch(checkError)
+                .finally(finishLoading)
         }
-        setLoading(true)
-        // fetching data initially
-        fetchFunc()
 
+        // fetching data initially
+        load()
         const interval: any = setInterval(() => {
-            fetchFunc()
+            load()
         }, props.refreshIntervalMS)
 
         return () => {
@@ -55,7 +57,7 @@ function DaemonSets(props: Props) {
     return <React.Fragment>
         <PageHead title={"Workloads - DaemonSets"} />
         <Box>
-            {loading ? <CircularProgress color="primary" /> : <DaemonSetDataGrid rows={data} height="800px"/>}
+            {loading ? <CircularProgress color="primary" /> : <DaemonSetDataGrid daemonsets={daemonsets} height="800px" />}
         </Box>
         <Snackbar anchorOrigin={{ horizontal: "left", vertical: "bottom" }} open={errorMessage !== ""} autoHideDuration={6000}>
             <Alert severity="error">{errorMessage}</Alert>

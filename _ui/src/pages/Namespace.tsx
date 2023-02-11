@@ -218,7 +218,7 @@ function Namespace(props: Props) {
                     <DeploymentDataGrid deployments={workloads["Deployment"]} height="600px" />
                 </TabPanel>
                 <TabPanel value={value} index={1}>
-                    <DaemonSetDataGrid rows={workloads["Daemonset"]} height="600px" />
+                    <DaemonSetDataGrid daemonsets={workloads["Daemonset"]} height="600px" />
                 </TabPanel>
                 <TabPanel value={value} index={2}>
                     <StatefulSeteDataGrid rows={workloads["Statefulset"]} height="600px" />

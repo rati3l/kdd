@@ -1,11 +1,12 @@
 import axios from "axios"
 import { KDD_BASE_URL } from "../config";
-import { DeploymentWorkload, Namespace, Workload } from "./response_types";
+import { DaemonSetWorkload, DeploymentWorkload, Namespace, Workload } from "./response_types";
 
 export type Client = {
     getNamespaces: () => Promise<Array<Namespace>>;
     getWorkloads: () => Promise<Array<Workload>>;
     getDeployments: () => Promise<Array<DeploymentWorkload>>;
+    getDaemonsets: () => Promise<Array<DaemonSetWorkload>>;
 }
 
 const client = (): Client => {
@@ -22,15 +23,21 @@ const client = (): Client => {
         return data.data
     }
 
-    const getDeployments = async ():Promise<Array<DeploymentWorkload>> => {
+    const getDeployments = async (): Promise<Array<DeploymentWorkload>> => {
         const { data } = await axios.get(`/api/v1/workloads/deployments`, { headers })
+        return data.data
+    }
+
+    const getDaemonsets = async (): Promise<Array<DaemonSetWorkload>> => {
+        const { data } = await axios.get(`/api/v1/workloads/daemonsets`, { headers })
         return data.data
     }
 
     const c: Client = {
         getNamespaces,
-        getWorkloads, 
+        getWorkloads,
         getDeployments,
+        getDaemonsets,
     }
 
     return c

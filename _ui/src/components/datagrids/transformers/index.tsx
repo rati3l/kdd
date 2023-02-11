@@ -1,9 +1,10 @@
-import { DeploymentWorkload, Namespace, Workload } from "../../../clients/response_types"
+import { DaemonSetWorkload, DeploymentWorkload, Namespace, Workload } from "../../../clients/response_types"
 import { WORKLOAD_TYPE_CRONJOBS, WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_JOBS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from "../../../constants"
 
 type DataGridTransformer = {
     transformDataForNamespaceDataGrid: (namespaces: Array<Namespace>, workloads: Array<Workload>) => Array<NamespaceGridData>
     transformDataForDeploymentDataGrid: (deployments: Array<DeploymentWorkload>) => Array<DeploymentDataGrid>
+    transformDataForDaemonsetDataGrid: (daemonsets: Array<DaemonSetWorkload>) => Array<DaemonsetDataGrid>
 }
 
 type WorkloadCounts = {
@@ -25,6 +26,38 @@ export type DeploymentDataGrid = {
     status_available: number,
     status_up2date: number
 }
+
+export type DaemonsetDataGrid = {
+    workload_name: string,
+    namespace: string,
+    creation_date: string,
+    annotations: Record<string, string>,
+    labels: Record<string, string>,
+    selector: Record<string, string>,
+    status: string,
+    status_ready: string,
+    status_available: number,
+    status_up2date: number
+}
+
+/**
+ * 
+ * const flatten_rows: any = props.rows.map((row) => {
+        return {
+            workload_name: row.workload_info.workload_name,
+            namespace: row.workload_info.namespace,
+            creation_date: row.workload_info.creation_date,
+            annotations: row.workload_info.annotations || {},
+            labels: row.workload_info.labels || [],
+            selector: row.workload_info.selector || [],
+            status: (row.status.ready !== row.status.desired) ? "loading" : "running",
+            status_ready: `${row.status.ready}/${row.status.desired}`,
+            status_available: row.status.available,
+            status_up2date: row.status.up2date
+        }
+    })@returns 
+ * 
+ */
 
 export default function dataGridTransformers(): DataGridTransformer {
 
@@ -67,8 +100,27 @@ export default function dataGridTransformers(): DataGridTransformer {
                 namespace: row.workload_info.namespace,
                 creation_date: row.workload_info.creation_date,
                 annotations: row.workload_info.annotations || {},
-                labels: row.workload_info.labels,
-                selector: row.workload_info.selector,
+                labels: row.workload_info.labels || {},
+                selector: row.workload_info.selector || {},
+                status: (row.status.ready !== row.status.desired) ? "loading" : "running",
+                status_ready: `${row.status.ready}/${row.status.desired}`,
+                status_available: row.status.available,
+                status_up2date: row.status.up2date
+            }
+
+            return data
+        })
+    }
+
+    const transformDataForDaemonsetDataGrid = (deployments: Array<DaemonSetWorkload>): Array<DaemonsetDataGrid> => {
+        return deployments.map((row: DaemonSetWorkload) => {
+            const data: DaemonsetDataGrid = {
+                workload_name: row.workload_info.workload_name,
+                namespace: row.workload_info.namespace,
+                creation_date: row.workload_info.creation_date,
+                annotations: row.workload_info.annotations || {},
+                labels: row.workload_info.labels || {},
+                selector: row.workload_info.selector || {},
                 status: (row.status.ready !== row.status.desired) ? "loading" : "running",
                 status_ready: `${row.status.ready}/${row.status.desired}`,
                 status_available: row.status.available,
@@ -81,6 +133,7 @@ export default function dataGridTransformers(): DataGridTransformer {
 
     return {
         transformDataForNamespaceDataGrid,
-        transformDataForDeploymentDataGrid
+        transformDataForDeploymentDataGrid, 
+        transformDataForDaemonsetDataGrid,
     }
 }
