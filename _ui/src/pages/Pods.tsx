@@ -34,7 +34,7 @@ function Pods(props: Props) {
         setLoading(true)
 
         const load = () => {
-            client().getPods().then(data => {
+            client().getPods().then((data: Array<PodWorkload>) => {
                 setPods(data)
             })
                 .catch(checkError)

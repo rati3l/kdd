@@ -1,4 +1,4 @@
-import { DaemonSetWorkload, DeploymentWorkload, Namespace, PodWorkload, StatefulSetWorkload, Workload } from "../../../clients/response_types"
+import { CronjobWorkload, DaemonSetWorkload, DeploymentWorkload, Namespace, PodWorkload, StatefulSetWorkload, Workload } from "../../../clients/response_types"
 import { WORKLOAD_TYPE_CRONJOBS, WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_JOBS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from "../../../constants"
 
 type DataGridTransformer = {
@@ -7,6 +7,7 @@ type DataGridTransformer = {
     transformDataForDaemonsetDataGrid: (daemonsets: Array<DaemonSetWorkload>) => Array<DaemonsetDataGrid>
     transformDataForStatefulsetDataGrid: (statefulsets: Array<StatefulSetWorkload>) => Array<StatefulsetDataGrid>
     transformDataForPodDataGrid: (pods: Array<PodWorkload>) => Array<PodDataGrid>
+    transformDataForCronjobDataGrid: (jobs: Array<CronjobWorkload>) => Array<CronjobDataGrid>
 }
 
 type WorkloadCounts = {
@@ -63,6 +64,20 @@ export type PodDataGrid = {
     selector: Record<string, string>,
     restarts: number,
     status: string,
+}
+
+export type CronjobDataGrid = {
+    workload_name: string,
+    namespace: string,
+    creation_date: string,
+    active_jobs: number,
+    last_scheduled_time: string,
+    last_successful_time: string,
+    annotations: Record<string, string>,
+    labels: Record<string, string>,
+    selector: Record<string, string>,
+    suspend: boolean,
+    schedule: string,
 }
 
 export default function dataGridTransformers(): DataGridTransformer {
@@ -171,11 +186,31 @@ export default function dataGridTransformers(): DataGridTransformer {
         })
     }
 
+    const transformDataForCronjobDataGrid = (jobs: Array<CronjobWorkload>): Array<CronjobDataGrid> => {
+        return jobs.map((row: CronjobWorkload) => {
+            const data: CronjobDataGrid = {
+                workload_name: row.workload_info.workload_name,
+                namespace: row.workload_info.namespace,
+                creation_date: row.workload_info.creation_date,
+                active_jobs: row.status.active_jobs.length,
+                last_scheduled_time: row.status.last_scheduled_time,
+                last_successful_time: row.status.last_successful_time,
+                annotations: row.workload_info.annotations || {},
+                labels: row.workload_info.labels || {},
+                selector: row.workload_info.selector || {},
+                suspend: row.suspend,
+                schedule: row.schedule
+            }
+            return data
+        })
+    }
+
     return {
         transformDataForNamespaceDataGrid,
         transformDataForDeploymentDataGrid,
         transformDataForDaemonsetDataGrid,
         transformDataForStatefulsetDataGrid,
         transformDataForPodDataGrid,
+        transformDataForCronjobDataGrid,
     }
 }
