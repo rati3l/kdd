@@ -4,3 +4,6 @@ export const WORKLOAD_TYPE_STATEFULSETS="Statefulset"
 export const WORKLOAD_TYPE_PODS="Pod"
 export const WORKLOAD_TYPE_CRONJOBS="Cronjob"
 export const WORKLOAD_TYPE_JOBS="Job"
+
+export const CLUSTER_NODE="Node"
+export const CLUSTER_NAMESPACE="Namespace"

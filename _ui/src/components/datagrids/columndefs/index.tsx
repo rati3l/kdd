@@ -1,6 +1,6 @@
 import { GridColDef } from "@mui/x-data-grid"
 import { WORKLOAD_TYPE_CRONJOBS, WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_JOBS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from "../../../constants"
-import { renderHumanizedDate, renderHumanizedDuration, renderLabels, renderName, renderNamespace, renderStatus } from "./cellrenderer"
+import { renderCPU, renderEventStatus, renderHumanizedDate, renderHumanizedDuration, renderLabels, renderMemory, renderWorkloadName, renderNamespace, renderNamespaceStatus, renderNodeStatus, renderWorkloadStatus, renderNamespaceName, renderNamespaceWorkloadCounts } from "./cellrenderer"
 
 const namespace: GridColDef = {
     field: 'namespace',
@@ -14,7 +14,7 @@ const workloadName = (type: string): GridColDef => {
         field: 'workload_name',
         headerName: 'name',
         width: 200,
-        renderCell: renderName(type)
+        renderCell: renderWorkloadName(type)
     }
 }
 
@@ -23,7 +23,7 @@ const status = (type: string): GridColDef => {
         field: 'status',
         headerName: 'status',
         width: 100,
-        renderCell: renderStatus(type),
+        renderCell: renderWorkloadStatus(type),
     }
 }
 
@@ -45,6 +45,8 @@ const annotations: GridColDef = {
     field: 'annotations',
     headerName: 'annotations',
     width: 400,
+    hideable: true,
+    hide: true,
     renderCell: renderLabels("primary")
 }
 
@@ -185,7 +187,7 @@ const getJobDataGridColumnDefs = (): GridColDef[] => {
     return [
         { ...workloadName(WORKLOAD_TYPE_JOBS) },
         { ...namespace },
-        { ...status(WORKLOAD_TYPE_JOBS)},
+        { ...status(WORKLOAD_TYPE_JOBS) },
         {
             field: 'status_active',
             headerName: 'active',
@@ -226,24 +228,139 @@ const getJobDataGridColumnDefs = (): GridColDef[] => {
     ]
 }
 
+const getEventDataGridColumnDefs = (): GridColDef[] => {
+    return [
+        {
+            field: 'last_seen',
+            headerName: 'last seen',
+            width: 200,
+            renderCell: renderHumanizedDate()
+        },
+        {
+            field: 'first_seen',
+            headerName: 'first seen',
+            width: 200,
+            renderCell: renderHumanizedDate()
+        },
+        {
+            field: 'type',
+            headerName: 'type',
+            width: 200,
+            renderCell: renderEventStatus(),
+        },
+        {
+            field: 'message',
+            headerName: 'message',
+            width: 400,
+        },
+        {
+            field: 'object',
+            headerName: 'object',
+            width: 400,
+        },
+    ];
+}
 
-type WorkloadColumnsDefs = {
+const getNodeDataGridColumnDefs = (): GridColDef[] => {
+    return [
+        {
+            field: 'name',
+            headerName: 'name',
+            flex: 1
+        },
+        {
+            field: 'status',
+            headerName: 'status',
+            flex: 1,
+            renderCell: renderNodeStatus(),
+            minWidth: 80,
+        },
+        {
+            field: 'cpu',
+            headerName: 'cpu',
+            flex: 1,
+            minWidth: 40,
+            renderCell: renderCPU()
+        },
+        {
+            field: 'memory',
+            headerName: 'memory',
+            flex: 1,
+            renderCell: renderMemory()
+        },
+        {
+            field: 'os_image',
+            headerName: 'os_image',
+            flex: 1
+        },
+        {
+            field: 'kubelet_version',
+            headerName: 'kubelet',
+            flex: 1
+        },
+        {
+            field: 'roles',
+            headerName: 'roles',
+            flex: 1
+        },
+        { ...labels },
+        { ...annotations },
+        { ...creationDate },
+    ];
+}
+
+const getNamespaceDataGridColumnDefs = (): GridColDef[] => {
+    return [
+        {
+            field: 'name',
+            headerName: 'name',
+            width: 300,
+            renderCell: renderNamespaceName()
+        },
+        {
+            field: 'status',
+            headerName: 'status',
+            width: 200,
+            renderCell: renderNamespaceStatus(),
+        },
+        { ...labels },
+        { ...annotations },
+        {
+            field: 'workloads',
+            headerName: 'workloads',
+            width: 300,
+            disableColumnMenu: true,
+            filterable: false,
+            sortable: false,
+            renderCell: renderNamespaceWorkloadCounts(),
+        },
+        { ...creationDate }
+    ];
+}
+
+type ColumnDefs = {
     forDeployments: () => GridColDef[];
     forDeamonsets: () => GridColDef[];
     forStatefulsets: () => GridColDef[];
     forPods: () => GridColDef[];
     forCronjobs: () => GridColDef[];
     forJobs: () => GridColDef[];
+    forEvents: () => GridColDef[];
+    forNodes: () => GridColDef[];
+    forNamespaces: () => GridColDef[];
 }
 
-export default function workloadColumnDefs(): WorkloadColumnsDefs {
-    const w: WorkloadColumnsDefs = {
+export default function columnDefs(): ColumnDefs {
+    const w: ColumnDefs = {
         forDeployments: getDeploymentDataGridColumnDefs,
         forDeamonsets: getDaemonsetDataGridColumnDefs,
         forStatefulsets: getStatefulsetDataGridColumnDefs,
         forPods: getPodDataGridColumnDefs,
         forCronjobs: getCronjobDataGridColumnDefs,
         forJobs: getJobDataGridColumnDefs,
+        forEvents: getEventDataGridColumnDefs,
+        forNodes: getNodeDataGridColumnDefs,
+        forNamespaces: getNamespaceDataGridColumnDefs,
     }
 
     return w

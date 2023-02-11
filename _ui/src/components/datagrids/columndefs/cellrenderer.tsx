@@ -1,5 +1,6 @@
 import { Chip, Link, Stack } from "@mui/material";
 import { GridRenderCellParams } from "@mui/x-data-grid";
+import filesize from "file-size";
 import moment from "moment";
 import React from "react";
 import { WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_JOBS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from "../../../constants";
@@ -7,7 +8,7 @@ import { buildWorkloadLink, isWorkloadType } from "../../../utils";
 
 export type CellRenderFunc = (params: GridRenderCellParams<any, any, any>) => React.ReactNode;
 
-export const renderName = (type: string): CellRenderFunc => {
+export const renderWorkloadName = (type: string): CellRenderFunc => {
     return (params: GridRenderCellParams<any, any, any>): React.ReactNode => {
         const name = params.row["workload_name"]
         const namespace = params.row["namespace"]
@@ -15,6 +16,13 @@ export const renderName = (type: string): CellRenderFunc => {
             return <Link href={buildWorkloadLink(type, namespace, name)}>{name}</Link>
         }
         return name
+    }
+}
+
+export const renderNamespaceName = (): CellRenderFunc => {
+    return (params: GridRenderCellParams<any, any, any>): React.ReactNode => {
+        const namespace = params.row["name"]
+        return <Link href={`/ui/namespaces/${namespace}`}>{namespace}</Link>
     }
 }
 
@@ -43,7 +51,7 @@ export const renderLabels = (color: any): CellRenderFunc => {
     }
 }
 
-export const renderStatus = (type: string): CellRenderFunc => {
+export const renderWorkloadStatus = (type: string): CellRenderFunc => {
     return (params: GridRenderCellParams<any, any, any>): React.ReactNode => {
         const colorFunc = (status: string) => {
             if (type === WORKLOAD_TYPE_DEPLOYMENTS || type === WORKLOAD_TYPE_DEAEMONSET || type === WORKLOAD_TYPE_STATEFULSETS) {
@@ -89,3 +97,75 @@ export const renderHumanizedDuration = (): CellRenderFunc => {
         return ""
     }
 }
+
+export const renderEventStatus = (): CellRenderFunc => {
+    return (params: GridRenderCellParams<any>) => {
+        const colorFunc = (status: string) => {
+            switch (status) {
+                case "Normal":
+                    return "secondary"
+                case "Warning":
+                    return "warning"
+                case "Error":
+                    return "error"
+                default:
+                    return "secondary"
+            }
+
+        }
+
+        return <Chip sx={{ marginBottom: "5px" }} label={params?.value} variant="outlined" color={colorFunc(params?.value)} size="small" />
+    }
+}
+
+export const renderNodeStatus = (): CellRenderFunc => {
+    return (params: GridRenderCellParams<any>) => {
+        const colorFunc = (status: string) => {
+            switch (status.toLowerCase()) {
+                case "kubeletready":
+                    return "success"
+                default:
+                    return "error"
+            }
+        }
+
+        return <Chip sx={{ marginBottom: "5px" }} label={params?.value} variant="outlined" color={colorFunc(params?.value)} size="small" />
+    }
+}
+
+export const renderNamespaceStatus = (): CellRenderFunc => {
+    return (params: GridRenderCellParams<any>) => {
+        const colorFunc = (status: string) => {
+            switch (status.toLowerCase()) {
+                case "active":
+                    return "success"
+                default:
+                    return "error"
+            }
+        }
+        return <Chip sx={{ marginBottom: "5px" }} label={params?.value} variant="outlined" color={colorFunc(params?.value)} size="small" />
+    }
+}
+
+export const renderMemory = (): CellRenderFunc => {
+    return (params: GridRenderCellParams<any>) => {
+        return filesize(params?.value).human()
+    }
+}
+
+export const renderCPU = (): CellRenderFunc => {
+    return (params: GridRenderCellParams<any>) => {
+        return `${params?.value}m`
+    }
+}
+
+export const renderNamespaceWorkloadCounts = (): CellRenderFunc => {
+    return (params: GridRenderCellParams<any>) => {
+        return <div>
+            <b>Deployments: </b>{params?.value["deployments"]}<br />
+            <b>Daemonsets: </b>{params?.value["daemonsets"]}<br />
+            <b>Statefulsets: </b>{params?.value["statefulsets"]}
+        </div>
+    }
+}
+

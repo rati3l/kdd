@@ -11,6 +11,7 @@ import EventDataGrid from "../components/datagrids/EventDataGrid";
 import DeploymentDataGrid from "../components/datagrids/DeploymentDataGrid";
 import StatefulSeteDataGrid from "../components/datagrids/StatefulSetDataGrid";
 import DaemonSetDataGrid from "../components/datagrids/DaemonSetDataGrid";
+import { Event } from "../clients/response_types";
 
 type Props = {
     refreshIntervalMS: number;
@@ -85,7 +86,7 @@ function Namespace(props: Props) {
         "Daemonset": { total: 0, failed: 0 },
         "Statefulset": { total: 0, failed: 0 },
     })
-    const [events, setEvents] = useState([])
+    const [events, setEvents] = useState<Array<Event>>([])
     const [workloads, setWorkloads] = useState<IWorkloads>({
         "Deployments": [],
         "Daemonset": [],
@@ -205,7 +206,7 @@ function Namespace(props: Props) {
                     </Grid>
                 </Grid>
                 <SectionHead title="Events" />
-                <EventDataGrid rows={events} />
+                <EventDataGrid events={events} />
                 <SectionHead title="Workloads" />
                 <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                     <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
