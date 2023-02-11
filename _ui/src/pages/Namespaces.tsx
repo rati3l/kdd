@@ -4,72 +4,48 @@ import axios from "axios";
 import { Box } from "@mui/system";
 import { Alert, CircularProgress, Snackbar } from "@mui/material";
 import NamespaceDataGrid from "../components/datagrids/NamespaceDataGrid";
+import client from "../clients/kdd";
+import { Namespace, Workload } from "../clients/response_types";
 
 type Props = {
     refreshIntervalMS: number;
 }
 
 function Namespaces(props: Props) {
-    const [loading, setLoading] = useState(true)
-    const [errorMessage, setErrrorMessage] = useState("")
-    const [data, setData] = useState([])
+    const [loading, setLoading] = useState<boolean>(true)
+    const [errorMessage, setErrrorMessage] = useState<string>("")
+    const [workloads, setWorkloads] = useState<Array<Workload>>([])
+    const [namespaces, setNamespaces] = useState<Array<Namespace>>([])
+
+    const checkError = (error: any) => {
+        if (axios.isAxiosError(error)) {
+            console.error("failed to retrieve namespace information", error.message)
+            setErrrorMessage("failed to retrieve namespace information")
+        } else {
+            console.error("a unknown error occurred", error)
+            setErrrorMessage("a unknown error occurred")
+        }
+    }
+
+    const finishLoading = () => {
+        setLoading(false)
+    }
 
     useEffect(() => {
-
-        const getNamespaces = async () => {
-            const { data } = await axios.get("/api/v1/namespaces", { headers: { Accept: "application/json" } })
-            return data.data
-        }
-        const getWorkloads = async () => {
-            const { data } = await axios.get("/api/v1/workloads", { headers: { Accept: "application/json" } })
-            return data.data
-        }
         setLoading(true)
-
-        const fetchFunc = () => {
-            Promise.all([getNamespaces(), getWorkloads()]).then(([namespaces, workloads]) => {
-                setData(namespaces.map((ns: any) => {
-                    let statefulsets = 0
-                    let daemonsets = 0
-                    let deployments = 0
-
-                    workloads.filter((w: any) => w.workload_info.namespace === ns.name).forEach((w: any) => {
-                        switch (w.type) {
-                            case "Daemonset":
-                                daemonsets++
-                                break;
-                            case "Deployment":
-                                deployments++
-                                break;
-                            case "Statefulset":
-                                statefulsets++
-                                break
-                            case "Pod":
-                                // nothing to do here
-                                break
-                            default:
-                                console.error("unkown workload type found", w.type)
-                        }
-                    })
-
-                    return { ...ns, workloads: { statefulsets, deployments, daemonsets } }
-                }))
-            }).catch(error => {
-                if (axios.isAxiosError(error)) {
-                    console.error("failed to retrieve namespace information", error.message)
-                    setErrrorMessage("failed to retrieve namespace information")
-                } else {
-                    console.error("a unknown error occurred", error)
-                    setErrrorMessage("a unknown error occurred")
-                }
-            }).finally(() => { setLoading(false) })
+        const load = () => {
+            Promise.all([client().getNamespaces(), client().getWorkloads()]).then(([namespaces, workloads]) => {
+                setNamespaces(namespaces)
+                setWorkloads(workloads)
+            })
+                .catch(checkError)
+                .finally(finishLoading)
         }
 
         // fetching data initially
-        fetchFunc()
-
+        load()
         const interval: any = setInterval(() => {
-            fetchFunc()
+            load()
         }, props.refreshIntervalMS)
 
         return () => {
@@ -82,7 +58,7 @@ function Namespaces(props: Props) {
     return <React.Fragment>
         <PageHead title={"Namespaces"} />
         <Box>
-            {loading ? <CircularProgress color="primary" /> : <NamespaceDataGrid rows={data} />}
+            {loading ? <CircularProgress color="primary" /> : <NamespaceDataGrid workloads={workloads} namespaces={namespaces} />}
         </Box>
         <Snackbar anchorOrigin={{ horizontal: "left", vertical: "bottom" }} open={errorMessage !== ""} autoHideDuration={6000}>
             <Alert severity="error">{errorMessage}</Alert>

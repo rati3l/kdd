@@ -1,0 +1,6 @@
+export const WORKLOAD_TYPE_DEPLOYMENTS="Deployments"
+export const WORKLOAD_TYPE_DEAEMONSET="Daemonsets"
+export const WORKLOAD_TYPE_STATEFULSETS="Statefulsets"
+export const WORKLOAD_TYPE_PODS="Pods"
+export const WORKLOAD_TYPE_CRONJOBS="Cronjobs"
+export const WORKLOAD_TYPE_JOBS="Jobs"

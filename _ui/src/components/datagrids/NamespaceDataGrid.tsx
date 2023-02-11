@@ -1,25 +1,12 @@
+import moment from "moment";
+import React from "react";
+import StyledDataGrid from "./base/StyledDataGrid";
+import dataGridTransformers from "./transformers";
+
 import { Chip, Link } from "@mui/material";
 import { Stack } from "@mui/system";
-import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
-import moment from "moment";
-import { styled } from '@mui/material/styles';
-import React from "react";
-
-const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
-    "& .MuiDataGrid-renderingZone": {
-        maxHeight: "none !important"
-    },
-    "& .MuiDataGrid-cell": {
-        lineHeight: "unset !important",
-        maxHeight: "none !important",
-        whiteSpace: "normal !important",
-        paddingTop: "5px",
-        paddingBottom: "5px",
-    },
-    "& .MuiDataGrid-row": {
-        maxHeight: "none !important"
-    },
-}));
+import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import { Namespace, Workload } from "../../clients/response_types";
 
 const renderChips = (color: any) => {
     return (params: GridRenderCellParams<any>) => {
@@ -100,17 +87,19 @@ const columns: GridColDef[] = [
         sortable: false,
         renderCell: renderAge(),
     }
-    /*
-    { field: 'labels', headerName: 'labels', width: 200 },
-    */
 ];
 
 type Props = {
-    rows: any[];
+    workloads: Array<Workload>;
+    namespaces: Array<Namespace>;
 }
 
 function NamespaceDataGrid(props: Props) {
-    return <StyledDataGrid disableSelectionOnClick={true} getRowId={(row: any) => { return row.name }} rows={props.rows} columns={columns} sx={{ height: "800px" }} />
+    const workloads: Array<Workload> = props.workloads
+    const namespaces: Array<Namespace> = props.namespaces
+
+    const rows = dataGridTransformers().transformDataForNamespaceDataGrid(namespaces, workloads)
+    return <StyledDataGrid disableSelectionOnClick={true} getRowId={(row: any) => { return row.name }} rows={rows} columns={columns} sx={{ height: "800px" }} />
 }
 
 export default NamespaceDataGrid
