@@ -1,4 +1,4 @@
-import { DaemonSetWorkload, DeploymentWorkload, Namespace, StatefulSetWorkload, Workload } from "../../../clients/response_types"
+import { DaemonSetWorkload, DeploymentWorkload, Namespace, PodWorkload, StatefulSetWorkload, Workload } from "../../../clients/response_types"
 import { WORKLOAD_TYPE_CRONJOBS, WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_JOBS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from "../../../constants"
 
 type DataGridTransformer = {
@@ -6,6 +6,7 @@ type DataGridTransformer = {
     transformDataForDeploymentDataGrid: (deployments: Array<DeploymentWorkload>) => Array<DeploymentDataGrid>
     transformDataForDaemonsetDataGrid: (daemonsets: Array<DaemonSetWorkload>) => Array<DaemonsetDataGrid>
     transformDataForStatefulsetDataGrid: (statefulsets: Array<StatefulSetWorkload>) => Array<StatefulsetDataGrid>
+    transformDataForPodDataGrid: (pods: Array<PodWorkload>) => Array<PodDataGrid>
 }
 
 type WorkloadCounts = {
@@ -50,6 +51,18 @@ export type StatefulsetDataGrid = {
     selector: Record<string, string>,
     status: string,
     status_ready: string,
+}
+
+export type PodDataGrid = {
+    workload_name: string,
+    namespace: string,
+    creation_date: string,
+    count_containers: number,
+    annotations: Record<string, string>,
+    labels: Record<string, string>,
+    selector: Record<string, string>,
+    restarts: number,
+    status: string,
 }
 
 export default function dataGridTransformers(): DataGridTransformer {
@@ -141,10 +154,28 @@ export default function dataGridTransformers(): DataGridTransformer {
         })
     }
 
+    const transformDataForPodDataGrid = (pods: Array<PodWorkload>): Array<PodDataGrid> => {
+        return pods.map((row: PodWorkload) => {
+            const data: PodDataGrid = {
+                workload_name: row.workload_info.workload_name,
+                namespace: row.workload_info.namespace,
+                creation_date: row.workload_info.creation_date,
+                count_containers: row.workload_info.containers.length,
+                annotations: row.workload_info.annotations || {},
+                labels: row.workload_info.labels,
+                selector: row.workload_info.selector,
+                restarts: row.restarts,
+                status: row.status,
+            }
+            return data
+        })
+    }
+
     return {
         transformDataForNamespaceDataGrid,
         transformDataForDeploymentDataGrid,
         transformDataForDaemonsetDataGrid,
         transformDataForStatefulsetDataGrid,
+        transformDataForPodDataGrid,
     }
 }

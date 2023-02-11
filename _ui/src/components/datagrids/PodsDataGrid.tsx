@@ -1,26 +1,10 @@
 import { Chip, Link, Stack } from "@mui/material";
-import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import moment from "moment";
-import { styled } from '@mui/material/styles';
 import React from "react";
-
-const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
-    "& .MuiDataGrid-renderingZone": {
-        maxHeight: "none !important"
-    },
-    "& .MuiDataGrid-cell": {
-        lineHeight: "unset !important",
-        maxHeight: "none !important",
-        whiteSpace: "normal !important",
-        paddingTop: "5px",
-        paddingBottom: "5px",
-    },
-    "& .MuiDataGrid-row": {
-        maxHeight: "none !important"
-    },
-}));
-
-
+import { PodWorkload } from "../../clients/response_types";
+import StyledDataGrid from "./base/StyledDataGrid";
+import dataGridTransformers from "./transformers";
 
 const renderDate = () => {
     return (params: GridRenderCellParams<any>) => {
@@ -111,25 +95,12 @@ const columns: GridColDef[] = [
 ];
 
 type Props = {
-    rows: any[];
+    pods: Array<PodWorkload>;
     height: string;
 }
 
 function PodsDataGrid(props: Props) {
-    const flatten_rows: any = props.rows.map((row) => {
-        return {
-            workload_name: row.workload_info.workload_name,
-            namespace: row.workload_info.namespace,
-            creation_date: row.workload_info.creation_date,
-            count_containers: row.workload_info.containers.length,
-            annotations: row.workload_info.annotations || {},
-            labels: row.workload_info.labels,
-            selector: row.workload_info.selector,
-            restarts: row.restarts,
-            status: row.status,
-        }
-    })
-    return <StyledDataGrid disableSelectionOnClick={true} getRowId={(row: any) => { return `${row.workload_name}_${row.namespace}` }} rows={flatten_rows} columns={columns} sx={{ height: props.height }} />
+    return <StyledDataGrid disableSelectionOnClick={true} getRowId={(row: any) => { return `${row.workload_name}_${row.namespace}` }} rows={dataGridTransformers().transformDataForPodDataGrid(props.pods)} columns={columns} sx={{ height: props.height }} />
 }
 
 export default PodsDataGrid
