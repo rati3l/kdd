@@ -21,9 +21,6 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     },
 }));
 
-
-
-
 const renderChips = (color: any) => {
     return (params: GridRenderCellParams<any>) => {
         if (params.value) {
@@ -46,14 +43,13 @@ const renderAge = () => {
     }
 }
 
-
 const columns: GridColDef[] = [
     {
         field: 'name',
         headerName: 'name',
         width: 300,
         renderCell: (params: GridRenderCellParams<any>) => {
-            return <Link href={`/ui/namespace/${params?.value}`}>{params?.value}</Link>
+            return <Link href={`/ui/namespaces/${params?.value}`}>{params?.value}</Link>
         }
     },
     {

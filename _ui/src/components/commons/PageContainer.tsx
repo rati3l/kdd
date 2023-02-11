@@ -2,9 +2,10 @@ import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { CssBaseline, Divider, Drawer, FormControl, IconButton, InputLabel, List, ListItem, ListItemButton, ListItemText, MenuItem, Select, SelectChangeEvent, Toolbar, Typography } from '@mui/material';
+import { CssBaseline, Divider, Drawer, FormControl, IconButton, InputLabel, List, ListItem, ListItemText, MenuItem, Select, SelectChangeEvent, Toolbar, Typography } from '@mui/material';
 import { styled, useTheme } from '@mui/material/styles';
 import { Box } from '@mui/system';
+import NavListItem from './NavListItem';
 
 const drawerWidth = 240;
 
@@ -133,50 +134,18 @@ function PageContainer(props: Props) {
                     <ListItem>
                         <ListItemText disableTypography primary={<Typography variant="body2" style={{ fontWeight: "bold" }}>Cluster</Typography>} />
                     </ListItem>
-                    <ListItem disablePadding>
-                            <ListItemButton href="/ui/nodes" >
-                            <ListItemText primary="Nodes" />
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem disablePadding>
-                        <ListItemButton href="/ui/namespaces" >
-                            <ListItemText primary="Namespaces" />
-                        </ListItemButton>
-                    </ListItem>
+                    <NavListItem to="/ui" name="Nodes" end={true} />
+                    <NavListItem to="/ui/namespaces" name="Namespaces" end={false} />
                     <Divider />
                     <ListItem>
                         <ListItemText disableTypography primary={<Typography variant="body2" style={{ fontWeight: "bold" }}>Workloads</Typography>} />
                     </ListItem>
-                    <ListItem disablePadding>
-                        <ListItemButton href="/ui/workloads/deployments" >
-                            <ListItemText primary="Deployments" />
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem disablePadding>
-                        <ListItemButton href="/ui/workloads/statefulsets" >
-                            <ListItemText primary="Statefulsets" />
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem disablePadding>
-                        <ListItemButton href="/ui/workloads/daemonsets" >
-                            <ListItemText primary="Daemonsets" />
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem disablePadding>
-                        <ListItemButton href="/ui/workloads/cronjobs" >
-                            <ListItemText primary="Cronjobs" />
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem disablePadding>
-                        <ListItemButton href="/ui/workloads/jobs" >
-                            <ListItemText primary="Jobs" />
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem disablePadding>
-                        <ListItemButton href="/ui/workloads/pods" >
-                            <ListItemText primary="Pods" />
-                        </ListItemButton>
-                    </ListItem>
+                    <NavListItem to="/ui/workloads/deployments" name="Deployments" end={false} />
+                    <NavListItem to="/ui/workloads/statefulsets" name="Statefulsets" end={false} />
+                    <NavListItem to="/ui/workloads/daemonsets" name="Daemonsets" end={false} />
+                    <NavListItem to="/ui/workloads/cronjobs" name="Cronjobs" end={false} />
+                    <NavListItem to="/ui/workloads/jobs" name="Jobs" end={false} />
+                    <NavListItem to="/ui/workloads/pods" name="Pods" end={false} />
                 </List>
             </Drawer>
             <Main open={props.navOpen}>

@@ -57,8 +57,9 @@ function App() {
       <Router>
         <PageContainer refreshIntervalMS={refreshIntervalMS} onRefreshIntervalChanged={refreshIntervalMSChanged} navOpen={navOpen} onNavOpenChanged={navOpenChanged}>
           <Routes>
+            <Route path="/ui" element={<Nodes refreshIntervalMS={refreshIntervalMS} />}></Route>  
             <Route path="/ui/namespaces" element={<Namespaces refreshIntervalMS={refreshIntervalMS} />}></Route>
-            <Route path="/ui/namespace/:name" element={<Namespace refreshIntervalMS={refreshIntervalMS} />}></Route>
+            <Route path="/ui/namespaces/:name" element={<Namespace refreshIntervalMS={refreshIntervalMS} />}></Route>
             <Route path="/ui/workloads/deployments" element={<Deployments refreshIntervalMS={refreshIntervalMS} />}></Route>
             <Route path="/ui/workloads/pods/:namespace/:name" element={<Pod refreshIntervalMS={refreshIntervalMS} />}></Route>
             <Route path="/ui/workloads/:workloadType/:namespace/:name" element={<Workload refreshIntervalMS={refreshIntervalMS} />}></Route>
@@ -67,7 +68,6 @@ function App() {
             <Route path="/ui/workloads/pods" element={<Pods refreshIntervalMS={refreshIntervalMS} />}></Route>
             <Route path="/ui/workloads/jobs" element={<Jobs refreshIntervalMS={refreshIntervalMS} />}></Route>
             <Route path="/ui/workloads/cronjobs" element={<Cronjobs refreshIntervalMS={refreshIntervalMS} />}></Route>
-            <Route path="/ui/nodes" element={<Nodes refreshIntervalMS={refreshIntervalMS} />}></Route>
           </Routes>
         </PageContainer>
       </Router>
