@@ -1,28 +1,10 @@
 import { Chip, Link, Stack } from "@mui/material";
-import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import moment from "moment";
-import { styled } from '@mui/material/styles';
 import React from "react";
 import { DeploymentWorkload } from "../../clients/response_types";
 import dataGridTransformers from "./transformers";
-
-const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
-    "& .MuiDataGrid-renderingZone": {
-        maxHeight: "none !important"
-    },
-    "& .MuiDataGrid-cell": {
-        lineHeight: "unset !important",
-        maxHeight: "none !important",
-        whiteSpace: "normal !important",
-        paddingTop: "5px",
-        paddingBottom: "5px",
-    },
-    "& .MuiDataGrid-row": {
-        maxHeight: "none !important"
-    },
-}));
-
-
+import StyledDataGrid from "./base/StyledDataGrid";
 
 const renderDate = () => {
     return (params: GridRenderCellParams<any>) => {
