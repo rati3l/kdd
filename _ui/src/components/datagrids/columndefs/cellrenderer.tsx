@@ -2,7 +2,7 @@ import { Chip, Link, Stack } from "@mui/material";
 import { GridRenderCellParams } from "@mui/x-data-grid";
 import moment from "moment";
 import React from "react";
-import { WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from "../../../constants";
+import { WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_JOBS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from "../../../constants";
 import { buildWorkloadLink, isWorkloadType } from "../../../utils";
 
 export type CellRenderFunc = (params: GridRenderCellParams<any, any, any>) => React.ReactNode;
@@ -63,9 +63,29 @@ export const renderStatus = (type: string): CellRenderFunc => {
                     default:
                         return "error"
                 }
+            } else if (type === WORKLOAD_TYPE_JOBS) {
+                switch (status.toLocaleLowerCase()) {
+                    case "failed":
+                        return "error"
+                    case "running":
+                        return "secondary"
+                    case "succeeded":
+                        return "success"
+                    default:
+                        return "secondary"
+                }
             }
         }
 
         return <Chip sx={{ marginBottom: "5px" }} label={params?.value} variant="outlined" color={colorFunc(params?.value)} size="small" />
+    }
+}
+
+export const renderHumanizedDuration = (): CellRenderFunc => {
+    return (params: GridRenderCellParams<any>) => {
+        if (params.value) {
+            return params.value?.humanize()
+        }
+        return ""
     }
 }
