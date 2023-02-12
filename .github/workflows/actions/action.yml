@@ -10,7 +10,7 @@ runs:
     - uses: actions/checkout@v3
     - name: List the repo
       run: ls -la
-    - name: Run unit tests tests
+    - name: Run unit tests
       run: go test ./...
     - name: Build the Docker image
       run: docker build . --file _docker\Dockerfile --tag ${{  inputs.IMAGE_NAME  }}:${{  inputs.run_number  }}
