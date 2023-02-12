@@ -6,7 +6,7 @@ import { CssBaseline, Divider, Drawer, FormControl, IconButton, InputLabel, List
 import { styled, useTheme } from '@mui/material/styles';
 import { Box } from '@mui/system';
 import NavListItem from './NavListItem';
-import { WORKLOAD_TYPE_CRONJOBS, WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_JOBS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from '../../constants';
+import { getClusterNavigation, getRefreshIntervals, getWorkloadNavigation, NavItemConfig, RefreshIntervalConfig } from '../../navigation';
 
 const drawerWidth = 240;
 
@@ -105,10 +105,9 @@ function PageContainer(props: Props) {
                         <FormControl sx={{ m: 1, minWidth: 120, color: "#fff !important" }}>
                             <InputLabel sx={{ color: "#fff !important" }} id="refresh-interval-label">Refresh Interval</InputLabel>
                             <Select sx={{ color: "#fff !important" }} labelId="refresh-interval-label" id="refresh-interval" value={props.refreshIntervalMS.toString()} label="Refresh Interval" onChange={onChange}>
-                                <MenuItem value={5000}>5 sec.</MenuItem>
-                                <MenuItem value={10000}>10 sec.</MenuItem>
-                                <MenuItem value={60000}>1 min.</MenuItem>
-                                <MenuItem value={60000 * 5}>5 min.</MenuItem>
+                                {getRefreshIntervals().map((d: RefreshIntervalConfig, index: number) => {
+                                    return <MenuItem value={d.ms} key={index}>{d.name}</MenuItem>
+                                })}
                             </Select>
                         </FormControl>
                     </Box>
@@ -135,18 +134,16 @@ function PageContainer(props: Props) {
                     <ListItem>
                         <ListItemText disableTypography primary={<Typography variant="body2" style={{ fontWeight: "bold" }}>Cluster</Typography>} />
                     </ListItem>
-                    <NavListItem to="/ui" name="Nodes" end={true} />
-                    <NavListItem to="/ui/namespaces" name="Namespaces" end={false} />
+                    {getClusterNavigation().map((item: NavItemConfig, index: number) => {
+                        return <NavListItem to={item.to} end={item.end} name={item.name} key={index} />
+                    })}
                     <Divider />
                     <ListItem>
                         <ListItemText disableTypography primary={<Typography variant="body2" style={{ fontWeight: "bold" }}>Workloads</Typography>} />
                     </ListItem>
-                    <NavListItem to={`/ui/workloads/${WORKLOAD_TYPE_DEPLOYMENTS.toLocaleLowerCase()}`} name="Deployments" end={false} />
-                    <NavListItem to={`/ui/workloads/${WORKLOAD_TYPE_STATEFULSETS.toLocaleLowerCase()}`} name="Statefulsets" end={false} />
-                    <NavListItem to={`/ui/workloads/${WORKLOAD_TYPE_DEAEMONSET.toLocaleLowerCase()}`} name="Daemonsets" end={false} />
-                    <NavListItem to={`/ui/workloads/${WORKLOAD_TYPE_CRONJOBS.toLocaleLowerCase()}`} name="Cronjobs" end={false} />
-                    <NavListItem to={`/ui/workloads/${WORKLOAD_TYPE_JOBS.toLocaleLowerCase()}`} name="Jobs" end={false} />
-                    <NavListItem to={`/ui/workloads/${WORKLOAD_TYPE_PODS.toLocaleLowerCase()}`} name="Pods" end={false} />
+                    {getWorkloadNavigation().map((item: NavItemConfig, index: number) => {
+                        return <NavListItem to={item.to} end={item.end} name={item.name} key={index} />
+                    })}
                 </List>
             </Drawer>
             <Main open={props.navOpen}>
