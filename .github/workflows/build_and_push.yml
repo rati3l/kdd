@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: run build 
-      uses: .github/actions/build
+      uses: ./.github/workflows/actions/build
       with:
         IMAGE_NAME: ${{ env.IMAGE_NAME }}
         BUILD_NUMBER: ${{ github.run_number }}
