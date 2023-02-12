@@ -28,7 +28,7 @@ export const urlWorkloadTypeToConstant = (param: string | undefined): string => 
     }
 }
 
-export const isWorkloadType = (type: string): boolean => {
+export const isWorkloadType = (type: string | undefined): boolean => {
     switch (type) {
         case WORKLOAD_TYPE_DEPLOYMENTS:
         case WORKLOAD_TYPE_DEAEMONSET:

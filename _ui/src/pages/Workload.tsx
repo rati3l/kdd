@@ -1,118 +1,20 @@
 import React, { useEffect, useState } from "react"
 import PageHead from "../components/commons/PageHead"
-import { Box } from "@mui/system";
-import { Alert, Card, CardContent, Chip, CircularProgress, Collapse, Grid, IconButton, Paper, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
-import { Navigate, useParams } from "react-router-dom";
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import axios from "axios";
-import filesize from "file-size";
-import moment from "moment";
 import SectionHead from "../components/commons/SectionHead";
-import MemChart, { LimitMemory, RequestMemory } from "../components/charts/MemChart";
-import CpuChart, { LimitCPU, RequestCPU } from "../components/charts/CpuChart";
 import WorkloadInfoBox from "../components/infobox/WorkloadInfoBox";
+import PodInfoTable from "../components/tables/PodInfoTable";
+import client from "../clients/kdd";
+import { Box } from "@mui/system";
+import { Alert, Card, CardContent, CircularProgress, Grid, Snackbar } from "@mui/material";
+import { Navigate, useParams } from "react-router-dom";
 import { WORKLOAD_TYPE_CRONJOBS, WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_JOBS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from "../constants";
+import { isWorkloadType, urlWorkloadTypeToConstant } from "../utils";
+import PodsMemChart from "../components/charts/PodsMemChart";
+import PodsCPUChart from "../components/charts/PodsCPUChart";
 
 type Props = {
     refreshIntervalMS: number;
-}
-
-function Row(props: { row: any }) {
-    const { row } = props;
-    const [open, setOpen] = React.useState(false);
-
-    const renderStatusChip = (status: string) => {
-        return <Chip variant="outlined" label={status} size="small" color={(status === "Running" || status === "Succeeded" ? "success" : "error")} sx={{ mr: 1 }} />
-    }
-
-    return (
-        <React.Fragment>
-            <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
-                <TableCell>
-                    <IconButton
-                        aria-label="expand row"
-                        size="small"
-                        onClick={() => setOpen(!open)}
-                    >
-                        {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                    </IconButton>
-                </TableCell>
-                <TableCell>{row.workload_info.workload_name}</TableCell>
-                <TableCell>{renderStatusChip(row.status)}</TableCell>
-                <TableCell>{row.workload_info.containers.length}</TableCell>
-                <TableCell>{Object.keys(row.workload_info.labels).map((key) => {
-                    return <Chip variant="filled" label={`${key}=${row.workload_info.labels[key]}`} size="small" key={key} color="primary" sx={{ mr: 1 }} />
-                })}</TableCell>
-                <TableCell>
-                    {row.restarts}
-                </TableCell>
-                <TableCell>
-                    {moment(row.workload_info.creation_date).fromNow()}
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-                    <Collapse in={open} timeout="auto" unmountOnExit>
-                        <Box sx={{ margin: 1 }}>
-                            <Table size="small" aria-label="purchases">
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Name</TableCell>
-                                        <TableCell>Image</TableCell>
-                                        <TableCell>Request Memory / Limit Memory</TableCell>
-                                        <TableCell>Request CPU / Limit CPU</TableCell>
-                                        <TableCell>Current Usage Memory</TableCell>
-                                        <TableCell>Current Usage CPU</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {row.workload_info.containers.map((containerRow: any) => (
-                                        <TableRow key={containerRow.container_name}>
-                                            <TableCell component="th" scope="row">
-                                                {containerRow.container_name}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Chip variant="filled" label={`${containerRow.image}`} size="small" color="secondary" sx={{ mr: 1 }} />
-                                                <Chip variant="filled" label={`${containerRow.image_version}`} size="small" color="warning" sx={{ mr: 1 }} />
-                                                {containerRow.init ? <Chip variant="filled" label="init" size="small" color="error" /> : null}
-                                            </TableCell>
-                                            <TableCell>
-                                                {filesize(containerRow.request_memory).human()} / {filesize(containerRow.limit_memory).human()}
-                                            </TableCell>
-                                            <TableCell>
-                                                {containerRow.request_cpu}m / {containerRow.limit_cpu}m
-                                            </TableCell>
-                                            <TableCell>
-                                                {containerRow.metrics ? filesize(containerRow.metrics.memory_usage).human() : ""}
-                                            </TableCell>
-                                            <TableCell>
-                                                {containerRow.metrics ? `${containerRow.metrics.cpu_usage}m` : ""}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </Box>
-                    </Collapse>
-                </TableCell>
-            </TableRow>
-        </React.Fragment>
-    );
-}
-
-const checkWorkloadType = (workloadType: string | undefined) => {
-    switch (workloadType?.toLowerCase()) {
-        case WORKLOAD_TYPE_DEPLOYMENTS.toLowerCase():
-        case WORKLOAD_TYPE_DEAEMONSET.toLowerCase():
-        case WORKLOAD_TYPE_STATEFULSETS.toLowerCase():
-        case WORKLOAD_TYPE_CRONJOBS.toLowerCase():
-        case WORKLOAD_TYPE_JOBS.toLowerCase():
-        case WORKLOAD_TYPE_PODS.toLowerCase():
-            return true
-        default:
-            return false
-    }
 }
 
 const getHeadlineByWorkloadType = (workloadType: string | undefined) => {
@@ -140,110 +42,44 @@ function Workload(props: Props) {
     const [workload, setWorkload] = useState<any>({})
     const [pods, setPods] = useState<any[]>([])
     const [metrics, setMetrics] = useState<any[]>([])
-    const [requestMemory, setRequestMemory] = useState<RequestMemory[] | null>(null)
-    const [limitMemory, setLimitMemory] = useState<LimitMemory[] | null>(null)
-    const [requestCPU, setRequestCPU] = useState<RequestCPU[] | null>(null)
-    const [limitCPU, setLimitCPU] = useState<LimitCPU[] | null>(null)
 
-    const paramNamespace = useParams<string>()["namespace"]
-    const paramName = useParams<string>()["name"]
+    const namespace = useParams<string>()["namespace"]
+    const name = useParams<string>()["name"]
     const workloadType = useParams<string>()["workloadType"]
 
+    const checkError = (error: any) => {
+        if (axios.isAxiosError(error)) {
+            console.error("failed to retrieve information", error.message)
+            setErrorMessage("failed to retrieve information")
+        } else {
+            console.error("a unknown error occurred", error)
+            setErrorMessage("a unknown error occurred")
+        }
+    }
+
+    const finishLoading = () => {
+        setLoading(false)
+    }
+
     useEffect(() => {
-        setLoading(true)
-        const fetchFunc = (namespace: string | undefined, name: string | undefined) => {
-            const getWorkload = async () => {
-                const { data } = await axios.get(`/api/v1/workloads/${workloadType}s/${namespace}/${name}`, { headers: { Accept: "application/json" } })
-                return data.data
-            }
-
-            const requestsM: RequestMemory[] = []
-            const limitsM: LimitMemory[] = []
-
-            const requestsC: RequestCPU[] = []
-            const limitsC: LimitCPU[] = []
-
-            getWorkload().then(data => {
-                const pods = data.pods.map((p: any) => {
-                    p.workload_info.containers = p.workload_info.containers.map((c: any) => {
-
-                        const containerRequestsMem: RequestMemory[] = p.workload_info.containers.map((c: any) => {
-                            return {
-                                containerName: c.container_name,
-                                podname: p.workload_info.workload_name,
-                                value: c.request_memory
-                            }
-                        })
-
-                        const containerLimitsMem: LimitMemory[] = p.workload_info.containers.map((c: any) => {
-                            return {
-                                containerName: c.container_name,
-                                podname: p.workload_info.workload_name,
-                                value: c.limit_memory
-                            }
-                        })
-
-                        const containerRequestsCPU: RequestCPU[] = p.workload_info.containers.map((c: any) => {
-                            return {
-                                containerName: c.container_name,
-                                podname: p.workload_info.workload_name,
-                                value: c.request_cpu
-                            }
-                        })
-
-                        const containerLimitsCPU: LimitCPU[] = p.workload_info.containers.map((c: any) => {
-                            return {
-                                containerName: c.container_name,
-                                podname: p.workload_info.workload_name,
-                                value: c.limit_cpu
-                            }
-                        })
-
-                        requestsM.push(...containerRequestsMem)
-                        limitsM.push(...containerLimitsMem)
-
-                        requestsC.push(...containerRequestsCPU)
-                        limitsC.push(...containerLimitsCPU)
-
-                        const containerMetrics: any = []
-
-                        for (let i = 0; i < data.metrics.length; i++) {
-                            if (p.workload_info.workload_name === data.metrics[i].podname && c.container_name === data.metrics[i].container_name) {
-                                containerMetrics.push(data.metrics[i])
-                            }
-                        }
-                        return { ...c, metrics: containerMetrics[containerMetrics.length - 1] }
-                    })
-
-                    return p
+        const load = (namespace: string | undefined, name: string | undefined) => {
+            if (namespace && name) {
+                client().getWorkloadByTypeAndNamespace(urlWorkloadTypeToConstant(workloadType), namespace, name).then(data => {
+                    setWorkload(data.workload)
+                    setPods(data.pods)
+                    setMetrics(data.metrics)
                 })
-
-                setRequestMemory(requestsM)
-                setLimitMemory(limitsM)
-                setRequestCPU(requestsC)
-                setLimitCPU(limitsC)
-                setWorkload(data.workload)
-                setPods(pods)
-                setMetrics(data.metrics)
-            }).catch((error) => {
-                if (axios.isAxiosError(error)) {
-                    console.error("failed to retrieve deployment information", error.message)
-                    setErrorMessage("failed to retrieve deployment information")
-                } else {
-                    console.error("a unknown error occurred", error)
-                    setErrorMessage("a unknown error occurred")
-                }
-            }).finally(() => {
-                setLoading(false)
-            })
+                    .catch(checkError)
+                    .finally(finishLoading)
+            }
         }
 
-        if (checkWorkloadType(workloadType)) {
+        if (isWorkloadType(urlWorkloadTypeToConstant(workloadType))) {
             setLoading(true)
             // fetching data initially
-            fetchFunc(paramNamespace, paramName)
+            load(namespace, name)
             const interval: any = setInterval(() => {
-                fetchFunc(paramNamespace, paramName)
+                load(namespace, name)
             }, props.refreshIntervalMS)
 
             return () => {
@@ -251,15 +87,15 @@ function Workload(props: Props) {
             }
         }
 
-    }, [props.refreshIntervalMS, paramNamespace, paramName, workloadType]);
+    }, [props.refreshIntervalMS, namespace, name, workloadType]);
 
 
-    if (!checkWorkloadType(workloadType)) {
+    if (!isWorkloadType(urlWorkloadTypeToConstant(workloadType))) {
         return <Navigate to="/ui/" />
     }
 
     return <React.Fragment>
-        <PageHead title={`${getHeadlineByWorkloadType(workloadType)} ${paramName}`} />
+        <PageHead title={`${getHeadlineByWorkloadType(workloadType)} ${name}`} />
         <Box>
             {loading ? <CircularProgress color="primary" /> : <WorkloadInfoBox workload={workload} />}
         </Box>
@@ -269,40 +105,20 @@ function Workload(props: Props) {
                 <Grid item sm={6}>
                     <Card>
                         <CardContent sx={{ p: 3 }}>
-                            <MemChart data={metrics} limitMemory={limitMemory} requestMemory={requestMemory} />
+                            <PodsMemChart metrics={metrics} pods={pods} />
                         </CardContent>
                     </Card>
                 </Grid>
                 <Grid item sm={6}>
                     <Card>
                         <CardContent sx={{ p: 3 }}>
-                            <CpuChart data={metrics} limitCPU={limitCPU} requestCPU={requestCPU} />
+                            <PodsCPUChart metrics={metrics} pods={pods} />
                         </CardContent>
                     </Card>
                 </Grid>
             </Grid>
         </Box>
-        <SectionHead title="Pods &amp; Containers" />
-        <TableContainer component={Paper}>
-            <Table aria-label="collapsible table">
-                <TableHead>
-                    <TableRow>
-                        <TableCell />
-                        <TableCell>Podname</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Containers</TableCell>
-                        <TableCell>Labels</TableCell>
-                        <TableCell>Restarts</TableCell>
-                        <TableCell>Age</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {pods.map((pod: any) => (
-                        <Row key={pod.workload_info.workload_name} row={pod} />
-                    ))}
-                </TableBody>
-            </Table>
-        </TableContainer>
+        <PodInfoTable title="Pods &amp; Containers" metrics={metrics} pods={pods}></PodInfoTable>
         <Snackbar anchorOrigin={{ horizontal: "left", vertical: "bottom" }} open={errorMessage !== ""} autoHideDuration={6000}>
             <Alert severity="error">{errorMessage}</Alert>
         </Snackbar>

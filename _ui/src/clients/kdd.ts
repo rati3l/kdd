@@ -1,7 +1,7 @@
 import axios from "axios"
 import { KDD_BASE_URL } from "../config";
 import { WORKLOAD_TYPE_CRONJOBS, WORKLOAD_TYPE_DEAEMONSET, WORKLOAD_TYPE_DEPLOYMENTS, WORKLOAD_TYPE_JOBS, WORKLOAD_TYPE_PODS, WORKLOAD_TYPE_STATEFULSETS } from "../constants";
-import { CronjobWorkload, DaemonSetWorkload, DeploymentWorkload, JobWorkload, Namespace, PodWorkload, StatefulSetWorkload, Workload, Node } from "./response_types";
+import { CronjobWorkload, DaemonSetWorkload, DeploymentWorkload, JobWorkload, Namespace, PodWorkload, StatefulSetWorkload, Workload, Node, CombinedWorkloadInfo } from "./response_types";
 
 export type Client = {
     getNamespaces: () => Promise<Array<Namespace>>;
@@ -14,6 +14,7 @@ export type Client = {
     getCronjobs: () => Promise<Array<CronjobWorkload>>;
     getJobs: () => Promise<Array<JobWorkload>>;
     getNodes: () => Promise<Array<Node>>;
+    getWorkloadByTypeAndNamespace: (type: string, namespace: string, name: string) => Promise<CombinedWorkloadInfo>
 }
 
 const client = (): Client => {
@@ -84,6 +85,36 @@ const client = (): Client => {
         return data.data
     }
 
+    const getWorkloadByTypeAndNamespace = async (type: string, namespace: string, name: string): Promise<CombinedWorkloadInfo> => {
+        let urlType = ""
+        switch (type) {
+            case WORKLOAD_TYPE_DEPLOYMENTS:
+                urlType = "deployments"
+                break
+            case WORKLOAD_TYPE_DEAEMONSET:
+                urlType = "daemonsets"
+                break
+            case WORKLOAD_TYPE_STATEFULSETS:
+                urlType = "statefulsets"
+                break
+            case WORKLOAD_TYPE_CRONJOBS:
+                urlType = "cronjobs"
+                break
+            case WORKLOAD_TYPE_JOBS:
+                urlType = "jobs"
+                break
+            case WORKLOAD_TYPE_PODS:
+                urlType = "pods"
+                break
+            default:
+                return Promise.reject(new Error(`Passed workload type could not be found ${type}`))
+        }
+        const { data } = await axios.get(`/api/v1/workloads/${urlType}/${namespace}/${name}`, { headers })
+        return data.data
+    }
+
+
+
     const c: Client = {
         getNamespaces,
         getWorkloads,
@@ -95,6 +126,7 @@ const client = (): Client => {
         getJobs,
         getNodes,
         getWorkloadsByType,
+        getWorkloadByTypeAndNamespace,
     }
 
     return c
