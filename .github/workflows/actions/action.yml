@@ -7,9 +7,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v3
-    - name: List the repo
-      run: ls -la
     - name: Run unit tests
       run: go test ./...
     - name: Build the Docker image
