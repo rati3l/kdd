@@ -15,7 +15,7 @@ func InitRouter(ds *persistence.DataStore, ka *adapters.KubeAPIAdapter) *gin.Eng
 
 	r.StaticFS("/static", http.Dir("../_ui/build/static"))
 	r.LoadHTMLFiles("../_ui/build/index.html")
-	for _, page := range []string{"favicon.ico", "manifest.json", "robots.txt"} {
+	for _, page := range []string{"favicon.ico", "logo512.png", "logo192.png", "manifest.json", "robots.txt"} {
 		r.StaticFile(fmt.Sprintf("/%s", page), fmt.Sprintf("../_ui/build/%s", page))
 	}
 

@@ -97,6 +97,7 @@ function PageContainer(props: Props) {
                         sx={{ mr: 2, ...(props.navOpen && { display: 'none' }) }}>
                         <MenuIcon />
                     </IconButton>
+                    <Box component="img" sx={{ height: 54 }} alt="Logo" src={'/logo192.png'}/>
                     <Typography variant="h6" color="inherit" component="div" sx={{ "flexGrow": "1" }}>
                         kdd
                     </Typography>
