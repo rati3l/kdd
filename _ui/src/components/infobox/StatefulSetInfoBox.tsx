@@ -1,14 +1,15 @@
 import { Box, Chip } from "@mui/material"
+import { StatefulSetWorkload } from "../../clients/response_types";
 import CommonInfo from "./CommonInfo";
 
 type Props = {
-    workload: any;
+    workload: StatefulSetWorkload;
 }
 
 function StatefulSetInfoBox(props: Props) {
-    const workload = props.workload
+    const workload: StatefulSetWorkload = props.workload
 
-    const getStatusAsString = (workload: any) => {
+    const getStatusAsString = (workload: StatefulSetWorkload) => {
         if (workload.status.ready !== workload.status.replicas) {
             return "loading"
         } else {
@@ -25,7 +26,7 @@ function StatefulSetInfoBox(props: Props) {
             default:
                 return "primary"
         }
-    }    
+    }
 
     return <div>
         <Box mb={1}>

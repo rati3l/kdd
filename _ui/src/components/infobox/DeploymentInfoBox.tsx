@@ -1,13 +1,14 @@
 import { Box, Chip } from "@mui/material"
+import { DeploymentWorkload } from "../../clients/response_types";
 import CommonInfo from "./CommonInfo";
 
 type Props = {
-    workload: any;
+    workload: DeploymentWorkload;
 }
 
 function DeploymentInfoBox(props: Props) {
-    const workload = props.workload
-    const getStatusAsString = (workload: any) => {
+    const workload: DeploymentWorkload = props.workload
+    const getStatusAsString = (workload: DeploymentWorkload) => {
         if (workload.status.ready !== workload.status.desired) {
             return "loading"
         } else {

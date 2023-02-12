@@ -2,16 +2,17 @@ import { Chip } from "@mui/material";
 import { Box } from "@mui/system";
 import moment from "moment";
 import React from "react";
+import { Workload } from "../../clients/response_types";
 
 type Props = {
-    workload: any;
+    workload: Workload;
 }
 
 
 function CommonInfo(props: Props) {
-    const workload = props.workload
+    const workload: Workload = props.workload
 
-    const renderSelectorBlockIfExisting = (workload: any) => {
+    const renderSelectorBlockIfExisting = (workload: Workload) => {
         if (workload.workload_info.selector) {
             return (<Box mb={1}>
                 <b>Selector: </b>{Object.keys(workload.workload_info.selector).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
@@ -21,7 +22,7 @@ function CommonInfo(props: Props) {
         }
     }
 
-    const renderAnnotationsBlockIfExisting = (workload: any) => {
+    const renderAnnotationsBlockIfExisting = (workload: Workload) => {
         if (workload.workload_info.annotations) {
             return (<Box mb={1}>
                 <b>Annotations: </b>{Object.keys(workload.workload_info.annotations || {}).filter((k) => k !== "cattle.io/status" && k !== 'kubectl.kubernetes.io/last-applied-configuration').map((key) => {
@@ -31,7 +32,7 @@ function CommonInfo(props: Props) {
         }
     }
 
-    const renderLabelsBlockIfExisting = (workload: any) => {
+    const renderLabelsBlockIfExisting = (workload: Workload) => {
         if (workload.workload_info.labels) {
             return (<Box mb={1}>
                 <b>Labels: </b> {Object.keys(workload.workload_info.labels || {}).map((key) => {

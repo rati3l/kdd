@@ -1,13 +1,14 @@
 import { Chip } from "@mui/material"
 import { Box } from "@mui/system"
+import { PodWorkload } from "../../clients/response_types";
 import CommonInfo from "./CommonInfo"
 
 type Props = {
-    workload: any;
+    workload: PodWorkload;
 }
 
 function PodInfoBox(props: Props) {
-    const workload = props.workload
+    const workload: PodWorkload = props.workload
 
     const getStatusColor = (status: string) => {
         switch (status.toLocaleLowerCase()) {

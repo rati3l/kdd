@@ -1,14 +1,15 @@
 import { Box, Chip } from "@mui/material"
+import { JobWorkload } from "../../clients/response_types";
 import CommonInfo from "./CommonInfo";
 
 type Props = {
-    workload: any;
+    workload: JobWorkload;
 }
 
 function JobInfoBox(props: Props) {
-    const workload = props.workload
+    const workload: JobWorkload = props.workload
 
-    const getStatusAsString = (workload: any) => {
+    const getStatusAsString = (workload: JobWorkload) => {
         if (workload.status.active > 0) {
             return "running"
         }

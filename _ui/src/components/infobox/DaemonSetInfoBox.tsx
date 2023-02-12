@@ -1,13 +1,14 @@
 import { Box, Chip } from "@mui/material"
+import { DaemonSetWorkload } from "../../clients/response_types";
 import CommonInfo from "./CommonInfo";
 
 type Props = {
-    workload: any;
+    workload: DaemonSetWorkload;
 }
 
 function DaemonSetInfoBox(props: Props) {
-    const workload = props.workload
-    const getStatusAsString = (workload: any) => {
+    const workload: DaemonSetWorkload = props.workload
+    const getStatusAsString = (workload: DaemonSetWorkload) => {
         if (workload.status.ready !== workload.status.desired) {
             return "loading"
         } else {
