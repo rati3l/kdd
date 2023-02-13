@@ -11,7 +11,7 @@ FROM node:19.4.0-bullseye as node_builder
 ENV NODE_ENV=production
 COPY ./_ui /build
 WORKDIR /build
-RUN npm run build
+RUN npm install
 
 
 FROM alpine:3.17.1
