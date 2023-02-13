@@ -31,3 +31,4 @@ WORKDIR /app/bin
 EXPOSE 3333
 
 CMD ["./kdd"] 
+
