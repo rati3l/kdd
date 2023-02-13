@@ -17,4 +17,4 @@ jobs:
       uses: ./.github/workflows/build/
       with:
         IMAGE_NAME: ${{ env.IMAGE_NAME }}
-        BUILD_NUMBER: ${{ github.run_number }}
+        RUN_NUMBER: ${{ github.run_number }}
